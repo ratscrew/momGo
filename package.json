@@ -1,0 +1,44 @@
+{
+  "name": "momgo",
+  "version": "0.0.1",
+  "description": "mongodb helper for angular 2 on server-rx",
+  "main": "index.js",
+  "scripts": {
+    "tsc": "tsc",
+    "tsc:w": "tsc -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ratscrew/momgo.git"
+  },
+  "keywords": [
+    "momgo",
+    "mongo",
+    "mongodb",
+    "angular2",
+    "ng2",
+    "rxjs",
+    "rx-server"
+  ],
+  "author": "Aidan Grace",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ratscrew/momgo/issues"
+  },
+  "homepage": "https://github.com/ratscrew/momgo#readme",
+  "dependencies": {
+    "angular2": "^2.0.0-beta.15",
+    "concurrently": "^2.0.0",
+    "es6-shim": "^0.35.0",
+    "express": "^4.13.4",
+    "performance-now": "^0.2.0",
+    "reflect-metadata": "0.1.2",
+    "rx-server": "0.0.5",
+    "rxjs": "5.0.0-beta.2",
+    "socket.io": "^1.4.5",
+    "systemjs": "0.19.26",
+    "typescript": "^1.8.10",
+    "typings": "^0.7.12",
+    "zone.js": "0.6.10"
+  }
+}
