@@ -61,5 +61,5 @@ export class MomGo {
 }
 
 let m = new MomGo("sdfsdf","sdfsdf");
-m.db();
+
 
