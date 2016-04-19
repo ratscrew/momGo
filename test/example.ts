@@ -1,6 +1,6 @@
 import {server, publicFunction,globalEventHandler,globalEvent} from 'rx-server';
 import {Observable,Subject} from 'rxjs';
-import {MomGo} from '../index';
+import {} from '../index_';
 
 var express = require('express');
 var app = express();
