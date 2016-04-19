@@ -1,6 +1,6 @@
 import {bootstrap}    from 'angular2/platform/browser';
-import {Injectable} from 'angular2/core';
-import {Component} from 'angular2/core';
+import {Injectable,Component} from 'angular2/core';
+
 
 import {serverRx} from 'rx-server/clientScripts/rxServer';
 
@@ -18,7 +18,7 @@ class myServer extends serverRx{
 export class AppComponent {
     test:any = "start";
     constructor(serverRx:myServer){
-        let vm = this
+        let vm = this;
         serverRx.publicFunction('testPF').subscribe((_x)=>{
             vm.test = _x;
         })
