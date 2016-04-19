@@ -6,7 +6,9 @@
     "es6-shim": "github:DefinitelyTyped/DefinitelyTyped/es6-shim/es6-shim.d.ts#7de6c3dd94feaeb21f20054b9f30d5dabc5efabd",
     "express": "registry:dt/express#4.0.0+20160317120654",
     "jasmine": "github:DefinitelyTyped/DefinitelyTyped/jasmine/jasmine.d.ts#7de6c3dd94feaeb21f20054b9f30d5dabc5efabd",
+    "mongodb": "registry:dt/mongodb#2.1.0+20160328151449",
     "node": "registry:dt/node#4.0.0+20160412142033",
+    "q": "registry:dt/q#0.0.0+20160417152954",
     "socket.io": "registry:dt/socket.io#1.4.4+20160317120654"
   }
 }
