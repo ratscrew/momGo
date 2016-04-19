@@ -56,6 +56,4 @@ var MomGo = (function () {
     return MomGo;
 }());
 exports.MomGo = MomGo;
-var m = new MomGo("sdfsdf", "sdfsdf");
-m.db();
 //# sourceMappingURL=index.js.map
