@@ -1,5 +1,7 @@
 import {server, publicFunction,globalEventHandler,globalEvent} from 'rx-server';
 import {Observable,Subject} from 'rxjs';
+import {MomGo} from '../index';
+
 var express = require('express');
 var app = express();
 var path = require('path');
@@ -51,6 +53,8 @@ app.use(express.static(__dirname + '\\public'));
 _s.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
+
+
 
 class testPF extends publicFunction {
     constructor(user:Object, data:any,globalEventHandler:globalEventHandler){

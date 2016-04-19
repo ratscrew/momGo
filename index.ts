@@ -11,7 +11,7 @@ export class MomGo {
         this.db()
     }
     
-    mongoConnection(connectionStr){
+    mongoConnection(connectionStr:string){
         let me = this;
         if(me.dbs[connectionStr]){
             return q.when(me.dbs[connectionStr])
@@ -59,4 +59,3 @@ export class MomGo {
     }
     
 }
-

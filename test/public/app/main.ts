@@ -18,7 +18,7 @@ class myServer extends serverRx{
 export class AppComponent {
     test:any = "start";
     constructor(serverRx:myServer){
-        let vm = this
+        let vm = this;
         serverRx.publicFunction('testPF').subscribe((_x)=>{
             vm.test = _x;
         })
