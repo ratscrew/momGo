@@ -6,6 +6,8 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var rx_server_1 = require('rx-server');
 var rxjs_1 = require('rxjs');
+var index_1 = require('../index');
+var q = require('q');
 var express = require('express');
 var app = express();
 var path = require('path');
@@ -43,39 +45,145 @@ app.use(express.static(__dirname + '\\public'));
 _s.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
+var momgo = new index_1.MomGo("mongodb://test:1234@10.250.100.250:27017,10.252.100.48:27017?PreferredMember=nearest", "test");
 var testPF = (function (_super) {
     __extends(testPF, _super);
     function testPF(user, data, globalEventHandler) {
-        console.log('testPF');
         _super.call(this, user, data, globalEventHandler);
-        this.observable = rxjs_1.Observable.create(function (_s) {
-            console.log('testPF.observable');
-            var t = setInterval(function () {
-                console.log('testPF.observable.next');
-                _s.next('testing');
-            }, 1000);
-            var gc = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF", {});
-            gc.observable.subscribe(function (x) {
-                console.log('testPF.gc.next');
-                _s.next(x);
-            }, function () { }, function () {
-                _s.complete();
+        this.docs = [];
+        this.docLisseners = [];
+        this.query = {};
+        this.projection = {};
+        this.dbName = "test";
+        this.collectionName = "testing";
+        console.log('testPF');
+        var me = this;
+        me.observable = rxjs_1.Observable.create(function (_s) {
+            _s.next({ rId: me._rId });
+            me.runQuery(_s).then(function () {
+                var newDocLisseners = [];
+                me.docs.forEach(function (_id) {
+                    var key = {};
+                    key[me.dbName] = {};
+                    key[me.dbName][me.collectionName] = { _id: {} };
+                    key[me.dbName][me.collectionName]._id[_id] = 1;
+                    var idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id, key);
+                    idLissener.observable.subscribe(function (x) {
+                        _s.next({ update: x.msg });
+                    });
+                    newDocLisseners.push(idLissener);
+                    me.docLisseners.forEach(function (_idLissener) {
+                        _idLissener.dispose();
+                    });
+                    me.docLisseners = newDocLisseners;
+                });
             });
-            setTimeout(function () {
-                gc.dispose();
-            }, 20000);
+            //console.log('testPF.observable');
+            // let t = setInterval(()=>{
+            //     console.log('testPF.observable.next');
+            //     _s.next('testing')
+            // },1000)
+            var gc = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF", { "test": { testing: { update: 1 } } });
+            gc.observable.subscribe(function (x) {
+                if (x.msg.from_rId != me._rId) {
+                    me.runQuery(_s, x.msg).then(function () {
+                        var newDocLisseners = [];
+                        me.docs.forEach(function (_id) {
+                            var key = {};
+                            key[me.dbName] = {};
+                            key[me.dbName][me.collectionName] = { _id: {} };
+                            key[me.dbName][me.collectionName]._id[_id] = 1;
+                            var idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id, key);
+                            idLissener.observable.subscribe(function (x) {
+                                _s.next({ update: x.msg });
+                            });
+                            newDocLisseners.push(idLissener);
+                            me.docLisseners.forEach(function (_idLissener) {
+                                _idLissener.dispose();
+                            });
+                            me.docLisseners = newDocLisseners;
+                        });
+                    });
+                }
+            });
             return function () {
-                clearInterval(t);
+                gc.dispose();
+                me.docLisseners.forEach(function (idLissener) {
+                    idLissener.dispose();
+                });
             };
         });
     }
+    testPF.prototype.runQuery = function (_s, _update) {
+        if (_update === void 0) { _update = { _id: null }; }
+        var me = this;
+        return momgo.db(me.db).then(function (_db) {
+            var testing = _db.collection("testing");
+            var p = q.when(true);
+            if (_update._id && me.docs.indexOf(_update._id) == -1) {
+                p = testing.findOne({ _id: new momgo.ObjectID(_update._id) }, { _id: 1 }).then(function (doc) {
+                    return doc ? true : false;
+                });
+            }
+            return p.then(function (shouldFire) {
+                if (shouldFire) {
+                    return testing.find(me.query).project({ _id: 1 }).toArray().then(function (_docs) {
+                        _docs = _docs.map(function (_doc) {
+                            return _doc._id.toString();
+                        });
+                        var resendDocs = false;
+                        _docs.forEach(function (_id, i) {
+                            if (_id != me.docs[i]) {
+                                resendDocs = true;
+                            }
+                            if (me.docs.indexOf(_id) == -1) {
+                                testing.findOne({ _id: new momgo.ObjectID(_id) }, me.projection).then(function (doc) {
+                                    _s.next({ doc: doc });
+                                });
+                            }
+                        });
+                        if (resendDocs) {
+                            _s.next({ _ids: _docs });
+                            me.docs = _docs;
+                        }
+                    });
+                }
+            });
+        });
+    };
     return testPF;
 }(rx_server_1.publicFunction));
 s.addPublicFunction("testPF", testPF);
-var _s0 = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne', { test: 1 });
-var t0 = setInterval(function () { return _s0.next('fire one'); }, 1000);
-setTimeout(function () {
-    _s0.dispose();
-    clearInterval(t0);
-}, 120000);
+// let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne',{test:1});
+// let t0 =  setInterval(()=> _s0.next('fire one'),1000);
+// setTimeout(()=>{
+//     _s0.dispose();
+//     clearInterval(t0);
+// },120000);
+var save = (function (_super) {
+    __extends(save, _super);
+    function save(user, data, globalEventHandler) {
+        _super.call(this, user, data, globalEventHandler);
+        this.dbName = "test";
+        this.collectionName = "testing";
+        console.log('save');
+        console.log(data);
+        var me = this;
+        var key = {};
+        key[me.dbName] = {};
+        key[me.dbName][me.collectionName] = { update: data.save.$set, _id: {} };
+        key[me.dbName][me.collectionName]._id[data._id] = 1;
+        var _s0 = s.globalEventHandler.globalEventHandlerClient.createEvent('save', key);
+        me.observable = rxjs_1.Observable.create(function (_s) {
+            momgo.save(me.dbName, me.collectionName, data._id, data.save).then(function () {
+                _s0.next(data);
+                _s0.dispose();
+                _s.next('complete');
+                _s.complete();
+            });
+        });
+    }
+    return save;
+}(rx_server_1.publicFunction));
+s.addPublicFunction("save", save);
 //# sourceMappingURL=example.js.map

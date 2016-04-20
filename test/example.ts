@@ -1,6 +1,7 @@
-import {server, publicFunction,globalEventHandler,globalEvent} from 'rx-server';
+import {server, publicFunction,globalEventHandler,globalEvent,globalEventLissener} from 'rx-server';
 import {Observable,Subject} from 'rxjs';
-import {} from '../index_';
+import {MomGo} from '../index';
+import * as q from 'q';
 
 var express = require('express');
 var app = express();
@@ -54,53 +55,167 @@ _s.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
 
-
+let momgo = new MomGo("mongodb://test:1234@10.250.100.250:27017,10.252.100.48:27017?PreferredMember=nearest","test");
 
 class testPF extends publicFunction {
+    db;
+    docs = [];
+    docLisseners:globalEventLissener[] = [];
+    query = {};
+    projection = {};
+    dbName:string = "test";
+    collectionName:string = "testing";
+    
     constructor(user:Object, data:any,globalEventHandler:globalEventHandler){
-        console.log('testPF');
         super(user, data,globalEventHandler);
-        this.observable = Observable.create((_s:Subject<any>)=>{
-            console.log('testPF.observable');
-            let t = setInterval(()=>{
-                console.log('testPF.observable.next');
-                _s.next('testing')
-            },1000)
+        console.log('testPF');
+        let me = this;
+        me.observable = Observable.create((_s:Subject<any>)=>{
+            _s.next({rId:me._rId});
+            me.runQuery(_s).then(()=>{
+                let newDocLisseners:globalEventLissener[] =[];
+                me.docs.forEach((_id)=>{
+                    let key ={};
+                    key[me.dbName] ={};
+                    key[me.dbName][me.collectionName] = {_id:{}};
+                    key[me.dbName][me.collectionName]._id[_id] = 1;
+                    let idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id,key);
+                    idLissener.observable.subscribe((x)=>{
+                        _s.next({update:x.msg})
+                    })
+                    newDocLisseners.push(idLissener);
+                    me.docLisseners.forEach((_idLissener)=>{
+                        _idLissener.dispose()
+                    })
+                    me.docLisseners = newDocLisseners;
+                })
+            }) ;
+            
+            //console.log('testPF.observable');
+            // let t = setInterval(()=>{
+            //     console.log('testPF.observable.next');
+            //     _s.next('testing')
+            // },1000)
             
 
             
-            let gc =  globalEventHandler.globalEventHandlerClient.createEventLissener("testPF",{})
-            gc.observable.subscribe((x)=>{
-                console.log('testPF.gc.next');
-                _s.next(x);
-                
-            },()=>{},
-            ()=>{
-                _s.complete();
-            })
-            
-            
-            setTimeout(()=>{
-                gc.dispose();
-            },20000);
+            let gc =  globalEventHandler.globalEventHandlerClient.createEventLissener("testPF",{"test":{testing:{update:1}}})
+             gc.observable.subscribe((x)=>{
+                 if(x.msg.from_rId != me._rId){
+                   
+                    me.runQuery(_s,x.msg).then(()=>{
+                        let newDocLisseners:globalEventLissener[] =[];
+                        me.docs.forEach((_id)=>{
+                            let key ={};
+                            key[me.dbName] ={};
+                            key[me.dbName][me.collectionName] = {_id:{}};
+                            key[me.dbName][me.collectionName]._id[_id] = 1;
+                            let idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id,key);
+                            idLissener.observable.subscribe((x)=>{
+                                _s.next({update:x.msg})
+                            })
+                            newDocLisseners.push(idLissener);
+                            me.docLisseners.forEach((_idLissener)=>{
+                                _idLissener.dispose()
+                            })
+                            me.docLisseners = newDocLisseners;
+                        })
+                    })  
+                 }
+                 
+             })
+
             
            return ()=>{
-               clearInterval(t);
+               gc.dispose();
+               
+               me.docLisseners.forEach((idLissener)=>{
+                   idLissener.dispose();
+               })
+
            }
         })
 
     }
+    
+    runQuery(_s:Subject<any>,_update = {_id:null}){
+        let me = this;
+        return momgo.db(me.db).then((_db)=>{
+                let testing  = _db.collection("testing");
+                let p = q.when(true);
+                if(_update._id && me.docs.indexOf(_update._id)==-1){
+                    p = testing.findOne({_id:new momgo.ObjectID(_update._id)},{_id:1}).then((doc)=>{
+                        return doc?true:false;
+                    })
+                }
+                return p.then((shouldFire)=>{
+                    if(shouldFire){
+                        return testing.find(me.query).project({_id:1}).toArray().then((_docs:Array<any>)=>{
+                            _docs = _docs.map((_doc)=>{
+                                return _doc._id.toString();
+                            })
+                            let resendDocs = false;
+                            _docs.forEach((_id,i)=>{
+                                if(_id != me.docs[i]){
+                                    resendDocs = true;
+                                }
+                                if(me.docs.indexOf(_id) == -1){
+                                    testing.findOne({_id:new momgo.ObjectID(_id)},me.projection).then((doc)=>{
+                                        _s.next({doc:doc});
+                                    })
+                                }
+                            })
+                            if (resendDocs) {
+                                _s.next({_ids:_docs});
+                                me.docs = _docs;
+                            }
+                        })
+                    }
+                })
+                
+            })
+    }
 }
 
-s.addPublicFunction("testPF",testPF)
+s.addPublicFunction("testPF",testPF);
 
 
-let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne',{test:1});
+// let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne',{test:1});
 
-let t0 =  setInterval(()=> _s0.next('fire one'),1000);
+// let t0 =  setInterval(()=> _s0.next('fire one'),1000);
 
-setTimeout(()=>{
-    _s0.dispose();
-    clearInterval(t0);
-},120000);
+// setTimeout(()=>{
+//     _s0.dispose();
+//     clearInterval(t0);
+// },120000);
+
+
+class save extends publicFunction {
+    dbName:string = "test";
+    collectionName:string = "testing";
+    constructor(user:Object, data:any,globalEventHandler:globalEventHandler) {
+        super(user, data,globalEventHandler);
+        console.log('save');
+        console.log(data);
+        
+        let me = this;
+        let key = {};
+        key[me.dbName] ={};
+        key[me.dbName][me.collectionName] = {update:data.save.$set,_id:{}};
+        key[me.dbName][me.collectionName]._id[data._id] = 1;
+        
+        let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('save', key);
+        me.observable = Observable.create((_s:Subject<any>)=>{
+            momgo.save(me.dbName,me.collectionName,data._id,data.save).then(()=>{
+                _s0.next(data);
+                _s0.dispose();
+                _s.next('complete');
+                _s.complete();
+            })
+        })
+    }
+}
+
+s.addPublicFunction("save",save);
+
 

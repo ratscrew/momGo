@@ -4,7 +4,7 @@ import * as q from 'q';
 
 export class MomGo {
     MongoClient = mongoDriver.MongoClient;
-    OnjectID = mongoDriver.ObjectID;
+    ObjectID = mongoDriver.ObjectID;
     private dbs = {};
     
     constructor(public serverName, public dbName) {
@@ -58,6 +58,71 @@ export class MomGo {
         })
     }
     
+    save(dbName,collectionName,_id,save){
+        let me = this;
+        if(save.$set && Object.keys(save.$set).length > 0) me.scanObj(save.$set);
+        
+        for (var key in save) {
+
+            console.log(save[key]);
+    
+        }
+        
+        return me.db(dbName).then((_db)=>{
+            let collection = _db.collection(collectionName);
+            let update:any = {};
+            if(save.$set) update.$set = save.$set;
+            if(save.$unset) update.$unset = save.$unset;
+            return collection.updateOne({_id:new me.ObjectID(_id)},update).then(()=>{
+                let $pull =[];
+                if(save.$pull && Object.keys(save.$pull).length > 0)  {
+                    for (var i in save.$pull){
+                        var p = {};
+                        p[i] = null;
+                        $pull.push(p);
+                    }
+                }
+                
+                let qList = [];
+                $pull.forEach(function (p) {
+                    qList.push(collection.updateOne({_id: new me.ObjectID(_id)}, {$pull:p}));
+                });
+                
+                return q.all(qList).then(()=>{
+                    console.log('saved');
+                });
+            })
+        })
+    }
+    
+    
+    scanObj(obj){
+        for(var i in obj){
+            if((this.isArray(obj[i]) || this.isObject(obj[i])) && !this.isDate(obj[i])) this.scanObj(obj[i]);
+            else if(this.isString(obj[i])) this.checkDate(obj, i);
+        }
+    }
+    
+    isArray(val) {
+        return (Object.prototype.toString.call(val) === '[object Array]');
+    }
+    
+    isObject(val) {
+        return (typeof val === 'object');
+    }
+    
+    isDate(val){
+        if(val != undefined && val != null && !this.isString(val)) return !!val.getUTCFullYear;
+        else false;
+    }
+    
+    isString(val){
+        return (typeof val == 'string' || val instanceof String);
+    }
+    
+    checkDate (obj, key){
+        if(obj[key].match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/i)) obj[key] = new Date(obj[key]);
+    }
 }
 
 
