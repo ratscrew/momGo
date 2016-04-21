@@ -46,29 +46,28 @@ _s.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
 var momgo = new index_1.MomGo("mongodb://test:1234@10.250.100.250:27017,10.252.100.48:27017?PreferredMember=nearest", "test");
-var testPF = (function (_super) {
-    __extends(testPF, _super);
-    function testPF(user, data, globalEventHandler) {
+var Query = (function (_super) {
+    __extends(Query, _super);
+    function Query(user, data, globalEventHandler, functionName) {
         _super.call(this, user, data, globalEventHandler);
+        this.functionName = functionName;
         this.docs = [];
         this.docLisseners = [];
         this.query = {};
         this.projection = {};
         this.dbName = "test";
         this.collectionName = "testing";
-        console.log('testPF');
+        this.whereKey = {};
         var me = this;
+        me.whereKey = {};
+        me.whereKey[me.dbName] = {};
+        me.whereKey[me.dbName][me.collectionName] = { update: 1 };
         me.observable = rxjs_1.Observable.create(function (_s) {
             _s.next({ rId: me._rId });
             me.runQuery(_s).then(function () {
                 me.buildUpdateLisseners(_s, globalEventHandler);
             });
-            //console.log('testPF.observable');
-            // let t = setInterval(()=>{
-            //     console.log('testPF.observable.next');
-            //     _s.next('testing')
-            // },1000)
-            var gc = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF", { "test": { testing: { update: 1 } } });
+            var gc = globalEventHandler.globalEventHandlerClient.createEventLissener(me.functionName, me.whereKey);
             gc.observable.subscribe(function (x) {
                 me.runQuery(_s, x.msg).then(function () {
                     me.buildUpdateLisseners(_s, globalEventHandler);
@@ -82,7 +81,7 @@ var testPF = (function (_super) {
             };
         });
     }
-    testPF.prototype.buildUpdateLisseners = function (_s, globalEventHandler) {
+    Query.prototype.buildUpdateLisseners = function (_s, globalEventHandler) {
         var me = this;
         var newDocLisseners = [];
         me.docs.forEach(function (_id) {
@@ -90,9 +89,17 @@ var testPF = (function (_super) {
             key[me.dbName] = {};
             key[me.dbName][me.collectionName] = { _id: {} };
             key[me.dbName][me.collectionName]._id[_id] = 1;
-            var idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id, key);
+            var idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener(me.functionName + "_id:" + _id, key);
             idLissener.observable.subscribe(function (_x) {
                 if (_x.msg.from_rId != me._rId) {
+                    if (me.projection && Object.keys(me.projection).length > 1) {
+                        for (var i in _x.msg.save.$set) {
+                            var val = i.split(".")[0];
+                            if (!me.projection[val]) {
+                                delete _x.msg.save.$set[i];
+                            }
+                        }
+                    }
                     _s.next({ update: _x.msg });
                 }
             });
@@ -103,11 +110,11 @@ var testPF = (function (_super) {
         });
         me.docLisseners = newDocLisseners;
     };
-    testPF.prototype.runQuery = function (_s, _update) {
+    Query.prototype.runQuery = function (_s, _update) {
         if (_update === void 0) { _update = { _id: null }; }
         var me = this;
         return momgo.db(me.db).then(function (_db) {
-            var testing = _db.collection("testing");
+            var testing = _db.collection(me.collectionName);
             var p = q.when(true);
             if (_update._id && me.docs.indexOf(_update._id) == -1) {
                 p = testing.findOne({ _id: new momgo.ObjectID(_update._id) }, { _id: 1 }).then(function (doc) {
@@ -140,8 +147,18 @@ var testPF = (function (_super) {
             });
         });
     };
-    return testPF;
+    return Query;
 }(rx_server_1.publicFunction));
+var testPF = (function (_super) {
+    __extends(testPF, _super);
+    function testPF(user, data, globalEventHandler) {
+        _super.call(this, user, data, globalEventHandler, 'testPF');
+        this.dbName = "test";
+        this.collectionName = "testing";
+        this.projection = { test: 1, other: 1, subs: 1 };
+    }
+    return testPF;
+}(Query));
 s.addPublicFunction("testPF", testPF);
 // let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne',{test:1});
 // let t0 =  setInterval(()=> _s0.next('fire one'),1000);
@@ -155,8 +172,6 @@ var save = (function (_super) {
         _super.call(this, user, data, globalEventHandler);
         this.dbName = "test";
         this.collectionName = "testing";
-        console.log('save');
-        console.log(data);
         var me = this;
         var key = {};
         key[me.dbName] = {};

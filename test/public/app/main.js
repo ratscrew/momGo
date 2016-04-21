@@ -1,4 +1,4 @@
-System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/clientScripts/rxServer'], function(exports_1, context_1) {
+System.register(['angular2/platform/browser', 'angular2/core', 'rxjs/rx', 'rx-server/clientScripts/rxServer'], function(exports_1, context_1) {
     "use strict";
     var __moduleName = context_1 && context_1.id;
     var __extends = (this && this.__extends) || function (d, b) {
@@ -18,8 +18,8 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
     var __param = (this && this.__param) || function (paramIndex, decorator) {
         return function (target, key) { decorator(target, key, paramIndex); }
     };
-    var browser_1, core_1, rxServer_1;
-    var myServer, testing, AppComponent;
+    var browser_1, core_1, rx_1, rxServer_1;
+    var myServer, Query, testPF, AppComponent;
     return {
         setters:[
             function (browser_1_1) {
@@ -28,6 +28,9 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
             function (core_1_1) {
                 core_1 = core_1_1;
             },
+            function (rx_1_1) {
+                rx_1 = rx_1_1;
+            },
             function (rxServer_1_1) {
                 rxServer_1 = rxServer_1_1;
             }],
@@ -35,7 +38,7 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
             myServer = (function (_super) {
                 __extends(myServer, _super);
                 function myServer() {
-                    _super.call(this, 'http://localhost:3000');
+                    _super.call(this, 'http://4VJSSY1:3000');
                 }
                 myServer = __decorate([
                     core_1.Injectable(), 
@@ -43,16 +46,18 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                 ], myServer);
                 return myServer;
             }(rxServer_1.serverRx));
-            testing = (function () {
-                function testing(myServer) {
+            Query = (function () {
+                function Query(myServer, getFunctionName, saveFunctionName) {
+                    this.myServer = myServer;
+                    this.getFunctionName = getFunctionName;
+                    this.saveFunctionName = saveFunctionName;
                     this.ids = [];
                     this.docs = {};
                     this.savedDocs = {};
-                    this.myServer = myServer;
                 }
-                testing.prototype.get = function () {
+                Query.prototype.get = function () {
                     var me = this;
-                    return me.myServer.publicFunction('testPF').map(function (data) {
+                    return me.myServer.publicFunction(me.getFunctionName).map(function (data) {
                         if (data.rId) {
                             me.rId = data.rId;
                         }
@@ -99,6 +104,7 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                                     }
                             }
                         }
+                    }).sampleTime(33).map(function () {
                         return me.ids.map(function (_id) {
                             return me.docs[_id];
                         }).filter(function (doc) {
@@ -106,18 +112,18 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                         });
                     });
                 };
-                testing.prototype.save = function (_id) {
+                Query.prototype.save = function (_id) {
                     var me = this;
                     var doc = me.docs[_id];
                     var savedDoc = me.savedDocs[_id];
                     if (doc && savedDoc) {
                         var clonedDoc_1 = me.clone(doc);
-                        return me.myServer.publicFunction('save', { _id: _id, save: me.objDeepMatch(doc, savedDoc).save, from_rId: me.rId }).subscribe(null, null, function () {
+                        return me.myServer.publicFunction(me.saveFunctionName, { _id: _id, save: me.objDeepMatch(doc, savedDoc).save, from_rId: me.rId }).subscribe(null, null, function () {
                             me.savedDocs[_id] = clonedDoc_1;
                         });
                     }
                 };
-                testing.prototype.objDeepMatch = function (odj1, odj2, location, returnObj) {
+                Query.prototype.objDeepMatch = function (odj1, odj2, location, returnObj) {
                     if (!returnObj)
                         returnObj = {
                             _id: odj1._id,
@@ -182,29 +188,29 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                     }
                     return returnObj;
                 };
-                testing.prototype.isFunction = function (functionToCheck) {
+                Query.prototype.isFunction = function (functionToCheck) {
                     var getType = {};
                     return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
                 };
-                testing.prototype.isArray = function (val) {
+                Query.prototype.isArray = function (val) {
                     return (Object.prototype.toString.call(val) === '[object Array]');
                 };
-                testing.prototype.isObject = function (val) {
+                Query.prototype.isObject = function (val) {
                     return (typeof val === 'object');
                 };
-                testing.prototype.isDate = function (val) {
+                Query.prototype.isDate = function (val) {
                     if (val != undefined && val != null && !this.isString(val))
                         return !!val.getUTCFullYear;
                     else
                         false;
                 };
-                testing.prototype.isString = function (val) {
+                Query.prototype.isString = function (val) {
                     return (typeof val == 'string' || val instanceof String);
                 };
-                testing.prototype.clone = function (obj) {
+                Query.prototype.clone = function (obj) {
                     return JSON.parse(JSON.stringify(obj));
                 };
-                testing.prototype.addrArrayToStr = function (addr) {
+                Query.prototype.addrArrayToStr = function (addr) {
                     var str = addr[0], i = 0;
                     if (addr.length > 1) {
                         do {
@@ -214,7 +220,7 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                     }
                     return str;
                 };
-                testing.prototype.addToAddrArray = function (a, obj) {
+                Query.prototype.addToAddrArray = function (a, obj) {
                     var newArray = [];
                     if (a) {
                         a.forEach(function (i) {
@@ -224,7 +230,7 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                     newArray.push(obj);
                     return newArray;
                 };
-                testing.prototype.objAddrOfParent = function (obj, addr) {
+                Query.prototype.objAddrOfParent = function (obj, addr) {
                     if (!Array.isArray(addr))
                         addr = addr.split(".");
                     if (addr.length == 1) {
@@ -250,36 +256,64 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                         return this.objAddrOfParent(obj[i], addr);
                     }
                 };
-                testing = __decorate([
+                return Query;
+            }());
+            testPF = (function (_super) {
+                __extends(testPF, _super);
+                function testPF(myServer) {
+                    _super.call(this, myServer, "testPF", "save");
+                }
+                testPF = __decorate([
                     core_1.Injectable(),
                     __param(0, core_1.Inject(myServer)), 
                     __metadata('design:paramtypes', [myServer])
-                ], testing);
-                return testing;
-            }());
+                ], testPF);
+                return testPF;
+            }(Query));
             AppComponent = (function () {
-                function AppComponent(testing) {
-                    this.testing = testing;
+                function AppComponent(testPF) {
+                    this.testPF = testPF;
                     this.test = [];
+                    this.saveSubject = new rx_1.Subject();
+                    this.saveOberverable = this.saveSubject.asObservable();
+                    this.idsToSave = [];
                     var vm = this;
-                    testing.get().subscribe(function (_x) {
+                    testPF.get().subscribe(function (_x) {
                         vm.test = _x;
+                        vm.test.forEach(function (_doc) {
+                            if (!_doc.other)
+                                _doc.other = { a: 1, b: 2, c: 3 };
+                            if (!_doc.test)
+                                _doc.test = "";
+                            if (!_doc.subs)
+                                _doc.subs = [{ val: "" }, { val: "" }, { val: "" }, { val: "" }, { val: "" }, { val: "" }];
+                        });
+                    });
+                    vm.saveOberverable.map(function (_id) {
+                        vm.idsToSave.push(_id);
+                        return vm.idsToSave;
+                    }).debounceTime(300).subscribe(function () {
+                        vm.idsToSave.forEach(function (_id) {
+                            vm.testPF.save(_id);
+                        });
+                        vm.idsToSave = [];
                     });
                 }
                 AppComponent.prototype.save = function (_id) {
-                    this.testing.save(_id);
+                    this.saveSubject.next(_id);
                 };
                 AppComponent = __decorate([
                     core_1.Component({
                         selector: 'my-app',
-                        template: "<h1>My First Angular 2 App</h1>\n    <div *ngFor=\"#item of test\">\n        <input [value]=\"item.test\" (input)=\"item.test = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.a\" (input)=\"item.other.a = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.b\" (input)=\"item.other.b = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.c\" (input)=\"item.other.c = $event.target.value; save(item._id)\" />\n    </div>",
-                        providers: [testing]
+                        template: "<h1>My First Angular 2 App</h1>\n    <div *ngFor=\"#item of test\" style=\"width: 1746px;\" >\n        <input [value]=\"item.test\" (input)=\"item.test = $event.target.value; save(item._id)\" />\n        \n        <input [value]=\"item.other.a\" (input)=\"item.other.a = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.b\" (input)=\"item.other.b = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.c\" (input)=\"item.other.c = $event.target.value; save(item._id)\" />\n        \n        <input *ngFor=\"#subItem of item.subs\" [value]=\"subItem.val\" (input)=\"subItem.val = $event.target.value; save(item._id)\" />\n        \n    </div>",
+                        providers: [testPF]
                     }), 
-                    __metadata('design:paramtypes', [testing])
+                    __metadata('design:paramtypes', [testPF])
                 ], AppComponent);
                 return AppComponent;
             }());
             exports_1("AppComponent", AppComponent);
+            core_1.enableProdMode();
             browser_1.bootstrap(AppComponent, [myServer]);
         }
     }

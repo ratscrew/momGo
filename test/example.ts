@@ -57,7 +57,7 @@ _s.listen(3000, function () {
 
 let momgo = new MomGo("mongodb://test:1234@10.250.100.250:27017,10.252.100.48:27017?PreferredMember=nearest","test");
 
-class testPF extends publicFunction {
+class Query extends publicFunction {
     db;
     docs = [];
     docLisseners:globalEventLissener[] = [];
@@ -65,43 +65,33 @@ class testPF extends publicFunction {
     projection = {};
     dbName:string = "test";
     collectionName:string = "testing";
+    whereKey:any = {};
     
-    constructor(user:Object, data:any,globalEventHandler:globalEventHandler){
+    constructor(user:Object, data:any,globalEventHandler:globalEventHandler,public functionName:string){
         super(user, data,globalEventHandler);
-        console.log('testPF');
         let me = this;
+        me.whereKey = {};
+        me.whereKey[me.dbName] = {};
+        me.whereKey[me.dbName][me.collectionName] = {update:1};
+        
         me.observable = Observable.create((_s:Subject<any>)=>{
             _s.next({rId:me._rId});
             me.runQuery(_s).then(()=>{
                 me.buildUpdateLisseners(_s,globalEventHandler);
             }) ;
-            
-            //console.log('testPF.observable');
-            // let t = setInterval(()=>{
-            //     console.log('testPF.observable.next');
-            //     _s.next('testing')
-            // },1000)
-            
 
-            
-            let gc =  globalEventHandler.globalEventHandlerClient.createEventLissener("testPF",{"test":{testing:{update:1}}})
+            let gc =  globalEventHandler.globalEventHandlerClient.createEventLissener(me.functionName,me.whereKey)
              gc.observable.subscribe((x)=>{
-
                 me.runQuery(_s,x.msg).then(()=>{
                     me.buildUpdateLisseners(_s,globalEventHandler);
                 })  
-
-                 
              })
 
-            
            return ()=>{
                gc.dispose();
-               
                me.docLisseners.forEach((idLissener)=>{
                    idLissener.dispose();
                })
-
            }
         })
 
@@ -115,10 +105,19 @@ class testPF extends publicFunction {
             key[me.dbName] ={};
             key[me.dbName][me.collectionName] = {_id:{}};
             key[me.dbName][me.collectionName]._id[_id] = 1;
-            let idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id,key);
+            let idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener(me.functionName + "_id:" + _id,key);
             idLissener.observable.subscribe((_x)=>{
                 if(_x.msg.from_rId != me._rId){
-                    _s.next({update:_x.msg})
+                    if(me.projection && Object.keys(me.projection).length > 1){
+                        for(var i in _x.msg.save.$set){
+                            let val = i.split(".")[0];
+                            if(!me.projection[val]){
+                                delete _x.msg.save.$set[i]
+                            }
+                        }
+                        
+                    }
+                    _s.next({update:_x.msg});
                 }
             })
             newDocLisseners.push(idLissener); 
@@ -133,7 +132,7 @@ class testPF extends publicFunction {
     runQuery(_s:Subject<any>,_update = {_id:null}){
         let me = this;
         return momgo.db(me.db).then((_db)=>{
-                let testing  = _db.collection("testing");
+                let testing  = _db.collection(me.collectionName);
                 let p = q.when(true);
                 if(_update._id && me.docs.indexOf(_update._id)==-1){
                     p = testing.findOne({_id:new momgo.ObjectID(_update._id)},{_id:1}).then((doc)=>{
@@ -169,7 +168,17 @@ class testPF extends publicFunction {
     }
 }
 
+class testPF extends Query {
+    constructor(user:Object, data:any,globalEventHandler:globalEventHandler){
+        super(user, data,globalEventHandler,'testPF');
+        this.dbName = "test";
+        this.collectionName = "testing";
+        this.projection = {test:1,other:1,subs:1};
+    }
+}
+
 s.addPublicFunction("testPF",testPF);
+
 
 
 // let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne',{test:1});
@@ -187,8 +196,6 @@ class save extends publicFunction {
     collectionName:string = "testing";
     constructor(user:Object, data:any,globalEventHandler:globalEventHandler) {
         super(user, data,globalEventHandler);
-        console.log('save');
-        console.log(data);
         
         let me = this;
         let key = {};
@@ -208,6 +215,6 @@ class save extends publicFunction {
     }
 }
 
-s.addPublicFunction("save",save);
+s.addPublicFunction("save",save)
 
 

@@ -1,30 +1,29 @@
 import {bootstrap}    from 'angular2/platform/browser';
-import {Injectable,Component,Inject} from 'angular2/core';
-
+import {Injectable,Component,Inject,enableProdMode} from 'angular2/core';
+import {Observable, Subject} from 'rxjs/rx';
 
 import {serverRx} from 'rx-server/clientScripts/rxServer';
 
 @Injectable()
 class myServer extends serverRx{
     constructor(){
-        super('http://localhost:3000');
+        super('http://4VJSSY1:3000');
     }
 }
 
-@Injectable()
-class testing {
-    myServer:myServer;
+
+class Query {
     ids=[];
     docs:{[id:string]:any} = {};
     savedDocs:{[id:string]:any} = {};
     private rId;
-    constructor(@Inject(myServer) myServer:myServer) {
-        this.myServer = myServer;
+    constructor(public myServer:myServer, public getFunctionName:string, public saveFunctionName:string) {
+
     }
     
     get(){
         let me = this;
-        return me.myServer.publicFunction('testPF').map((data)=>{
+        return me.myServer.publicFunction(me.getFunctionName).map((data)=>{
             if(data.rId){
                 me.rId = data.rId;
             }
@@ -75,7 +74,8 @@ class testing {
                         }
                 }
             }
-            
+
+        }).sampleTime(33).map(()=>{
             return me.ids.map((_id)=>{
                 return me.docs[_id];
             }).filter((doc)=>{
@@ -91,7 +91,7 @@ class testing {
         
         if(doc && savedDoc){
             let clonedDoc = me.clone(doc);
-            return me.myServer.publicFunction('save',{_id:_id,save:me.objDeepMatch(doc,savedDoc).save,from_rId:me.rId}).subscribe(null,null,()=>{
+            return me.myServer.publicFunction(me.saveFunctionName,{_id:_id,save:me.objDeepMatch(doc,savedDoc).save,from_rId:me.rId}).subscribe(null,null,()=>{
                 me.savedDocs[_id] = clonedDoc;
             })
         }
@@ -228,29 +228,61 @@ class testing {
     }
 }
 
-@Component({
-    selector: 'my-app',
-    template: `<h1>My First Angular 2 App</h1>
-    <div *ngFor="#item of test">
-        <input [value]="item.test" (input)="item.test = $event.target.value; save(item._id)" />
-        <input [value]="item.other.a" (input)="item.other.a = $event.target.value; save(item._id)" />
-        <input [value]="item.other.b" (input)="item.other.b = $event.target.value; save(item._id)" />
-        <input [value]="item.other.c" (input)="item.other.c = $event.target.value; save(item._id)" />
-    </div>`,
-    providers:[testing]
-})
-export class AppComponent {
-    test:Array<any> = [];
-    constructor(private testing:testing){
-        let vm = this;
-        testing.get().subscribe((_x)=>{
-            vm.test = _x;
-        })
-    }
-    
-    save(_id){
-        this.testing.save(_id);
+@Injectable()
+class testPF extends Query {
+    constructor(@Inject(myServer) myServer:myServer) {
+        super(myServer,"testPF","save")
     }
 }
 
+@Component({
+    selector: 'my-app',
+    template: `<h1>My First Angular 2 App</h1>
+    <div *ngFor="#item of test" style="width: 1746px;" >
+        <input [value]="item.test" (input)="item.test = $event.target.value; save(item._id)" />
+        
+        <input [value]="item.other.a" (input)="item.other.a = $event.target.value; save(item._id)" />
+        <input [value]="item.other.b" (input)="item.other.b = $event.target.value; save(item._id)" />
+        <input [value]="item.other.c" (input)="item.other.c = $event.target.value; save(item._id)" />
+        
+        <input *ngFor="#subItem of item.subs" [value]="subItem.val" (input)="subItem.val = $event.target.value; save(item._id)" />
+        
+    </div>`,
+    providers:[testPF]
+})
+export class AppComponent {
+    test:Array<any> = [];
+    saveSubject:Subject<any> = new Subject(); 
+    saveOberverable:Observable<any> = this.saveSubject.asObservable();
+    idsToSave = [];
+    constructor(private testPF:testPF){
+        let vm = this;
+        testPF.get().subscribe((_x)=>{
+            vm.test = _x;
+            vm.test.forEach((_doc)=>{
+                if(!_doc.other) _doc.other = {a:1,b:2,c:3};
+                if(!_doc.test) _doc.test = "";
+                
+                if(!_doc.subs) _doc.subs = [{val:""},{val:""},{val:""},{val:""},{val:""},{val:""}];
+            })
+        })
+        
+        vm.saveOberverable.map((_id)=>{
+            vm.idsToSave.push(_id);
+            return vm.idsToSave;
+        }).debounceTime(300).subscribe(()=>{
+            vm.idsToSave.forEach((_id)=>{
+                vm.testPF.save(_id)
+            })
+            vm.idsToSave = [];
+        })
+    }
+    
+    
+    
+    save(_id){
+        this.saveSubject.next(_id);
+    }
+}
+enableProdMode()
 bootstrap(AppComponent,[myServer]);
