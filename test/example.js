@@ -61,22 +61,7 @@ var testPF = (function (_super) {
         me.observable = rxjs_1.Observable.create(function (_s) {
             _s.next({ rId: me._rId });
             me.runQuery(_s).then(function () {
-                var newDocLisseners = [];
-                me.docs.forEach(function (_id) {
-                    var key = {};
-                    key[me.dbName] = {};
-                    key[me.dbName][me.collectionName] = { _id: {} };
-                    key[me.dbName][me.collectionName]._id[_id] = 1;
-                    var idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id, key);
-                    idLissener.observable.subscribe(function (x) {
-                        _s.next({ update: x.msg });
-                    });
-                    newDocLisseners.push(idLissener);
-                    me.docLisseners.forEach(function (_idLissener) {
-                        _idLissener.dispose();
-                    });
-                    me.docLisseners = newDocLisseners;
-                });
+                me.buildUpdateLisseners(_s, globalEventHandler);
             });
             //console.log('testPF.observable');
             // let t = setInterval(()=>{
@@ -85,26 +70,9 @@ var testPF = (function (_super) {
             // },1000)
             var gc = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF", { "test": { testing: { update: 1 } } });
             gc.observable.subscribe(function (x) {
-                if (x.msg.from_rId != me._rId) {
-                    me.runQuery(_s, x.msg).then(function () {
-                        var newDocLisseners = [];
-                        me.docs.forEach(function (_id) {
-                            var key = {};
-                            key[me.dbName] = {};
-                            key[me.dbName][me.collectionName] = { _id: {} };
-                            key[me.dbName][me.collectionName]._id[_id] = 1;
-                            var idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id, key);
-                            idLissener.observable.subscribe(function (x) {
-                                _s.next({ update: x.msg });
-                            });
-                            newDocLisseners.push(idLissener);
-                            me.docLisseners.forEach(function (_idLissener) {
-                                _idLissener.dispose();
-                            });
-                            me.docLisseners = newDocLisseners;
-                        });
-                    });
-                }
+                me.runQuery(_s, x.msg).then(function () {
+                    me.buildUpdateLisseners(_s, globalEventHandler);
+                });
             });
             return function () {
                 gc.dispose();
@@ -114,6 +82,27 @@ var testPF = (function (_super) {
             };
         });
     }
+    testPF.prototype.buildUpdateLisseners = function (_s, globalEventHandler) {
+        var me = this;
+        var newDocLisseners = [];
+        me.docs.forEach(function (_id) {
+            var key = {};
+            key[me.dbName] = {};
+            key[me.dbName][me.collectionName] = { _id: {} };
+            key[me.dbName][me.collectionName]._id[_id] = 1;
+            var idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id, key);
+            idLissener.observable.subscribe(function (_x) {
+                if (_x.msg.from_rId != me._rId) {
+                    _s.next({ update: _x.msg });
+                }
+            });
+            newDocLisseners.push(idLissener);
+        });
+        me.docLisseners.forEach(function (_idLissener) {
+            _idLissener.dispose();
+        });
+        me.docLisseners = newDocLisseners;
+    };
     testPF.prototype.runQuery = function (_s, _update) {
         if (_update === void 0) { _update = { _id: null }; }
         var me = this;

@@ -264,9 +264,6 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                     var vm = this;
                     testing.get().subscribe(function (_x) {
                         vm.test = _x;
-                        vm.test.forEach(function (doc) {
-                            doc.other = { a: 1, b: 2, c: 3 };
-                        });
                     });
                 }
                 AppComponent.prototype.save = function (_id) {
@@ -275,7 +272,7 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rx-server/client
                 AppComponent = __decorate([
                     core_1.Component({
                         selector: 'my-app',
-                        template: "<h1>My First Angular 2 App</h1><div>{{test|json}}</div>\n    <div *ngFor=\"#item of test\">\n        <input [value]=\"item.test\" (input)=\"item.test = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.a\" (input)=\"item.other.a = $event.target.value; \" />\n        <input [value]=\"item.other.b\" (input)=\"item.other.b = $event.target.value; \" />\n        <input [value]=\"item.other.c\" (input)=\"item.other.c = $event.target.value; \" />\n    </div>",
+                        template: "<h1>My First Angular 2 App</h1>\n    <div *ngFor=\"#item of test\">\n        <input [value]=\"item.test\" (input)=\"item.test = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.a\" (input)=\"item.other.a = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.b\" (input)=\"item.other.b = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.c\" (input)=\"item.other.c = $event.target.value; save(item._id)\" />\n    </div>",
                         providers: [testing]
                     }), 
                     __metadata('design:paramtypes', [testing])

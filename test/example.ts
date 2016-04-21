@@ -73,22 +73,7 @@ class testPF extends publicFunction {
         me.observable = Observable.create((_s:Subject<any>)=>{
             _s.next({rId:me._rId});
             me.runQuery(_s).then(()=>{
-                let newDocLisseners:globalEventLissener[] =[];
-                me.docs.forEach((_id)=>{
-                    let key ={};
-                    key[me.dbName] ={};
-                    key[me.dbName][me.collectionName] = {_id:{}};
-                    key[me.dbName][me.collectionName]._id[_id] = 1;
-                    let idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id,key);
-                    idLissener.observable.subscribe((x)=>{
-                        _s.next({update:x.msg})
-                    })
-                    newDocLisseners.push(idLissener);
-                    me.docLisseners.forEach((_idLissener)=>{
-                        _idLissener.dispose()
-                    })
-                    me.docLisseners = newDocLisseners;
-                })
+                me.buildUpdateLisseners(_s,globalEventHandler);
             }) ;
             
             //console.log('testPF.observable');
@@ -101,27 +86,11 @@ class testPF extends publicFunction {
             
             let gc =  globalEventHandler.globalEventHandlerClient.createEventLissener("testPF",{"test":{testing:{update:1}}})
              gc.observable.subscribe((x)=>{
-                 if(x.msg.from_rId != me._rId){
-                   
-                    me.runQuery(_s,x.msg).then(()=>{
-                        let newDocLisseners:globalEventLissener[] =[];
-                        me.docs.forEach((_id)=>{
-                            let key ={};
-                            key[me.dbName] ={};
-                            key[me.dbName][me.collectionName] = {_id:{}};
-                            key[me.dbName][me.collectionName]._id[_id] = 1;
-                            let idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id,key);
-                            idLissener.observable.subscribe((x)=>{
-                                _s.next({update:x.msg})
-                            })
-                            newDocLisseners.push(idLissener);
-                            me.docLisseners.forEach((_idLissener)=>{
-                                _idLissener.dispose()
-                            })
-                            me.docLisseners = newDocLisseners;
-                        })
-                    })  
-                 }
+
+                me.runQuery(_s,x.msg).then(()=>{
+                    me.buildUpdateLisseners(_s,globalEventHandler);
+                })  
+
                  
              })
 
@@ -136,6 +105,29 @@ class testPF extends publicFunction {
            }
         })
 
+    }
+
+    buildUpdateLisseners(_s:Subject<any>,globalEventHandler:globalEventHandler){
+        let me = this;
+        let newDocLisseners:globalEventLissener[] =[];
+        me.docs.forEach((_id)=>{
+            let key ={};
+            key[me.dbName] ={};
+            key[me.dbName][me.collectionName] = {_id:{}};
+            key[me.dbName][me.collectionName]._id[_id] = 1;
+            let idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF_id:" + _id,key);
+            idLissener.observable.subscribe((_x)=>{
+                if(_x.msg.from_rId != me._rId){
+                    _s.next({update:_x.msg})
+                }
+            })
+            newDocLisseners.push(idLissener); 
+        });
+        
+        me.docLisseners.forEach((_idLissener)=>{
+            _idLissener.dispose()
+        })
+        me.docLisseners = newDocLisseners;
     }
     
     runQuery(_s:Subject<any>,_update = {_id:null}){

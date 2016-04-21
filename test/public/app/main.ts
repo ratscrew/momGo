@@ -230,12 +230,12 @@ class testing {
 
 @Component({
     selector: 'my-app',
-    template: `<h1>My First Angular 2 App</h1><div>{{test|json}}</div>
+    template: `<h1>My First Angular 2 App</h1>
     <div *ngFor="#item of test">
         <input [value]="item.test" (input)="item.test = $event.target.value; save(item._id)" />
-        <input [value]="item.other.a" (input)="item.other.a = $event.target.value; " />
-        <input [value]="item.other.b" (input)="item.other.b = $event.target.value; " />
-        <input [value]="item.other.c" (input)="item.other.c = $event.target.value; " />
+        <input [value]="item.other.a" (input)="item.other.a = $event.target.value; save(item._id)" />
+        <input [value]="item.other.b" (input)="item.other.b = $event.target.value; save(item._id)" />
+        <input [value]="item.other.c" (input)="item.other.c = $event.target.value; save(item._id)" />
     </div>`,
     providers:[testing]
 })
@@ -245,11 +245,6 @@ export class AppComponent {
         let vm = this;
         testing.get().subscribe((_x)=>{
             vm.test = _x;
-            
-            vm.test.forEach((doc)=>{
-                doc.other = {a:1,b:2,c:3};
-            }) 
-            
         })
     }
     
