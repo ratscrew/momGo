@@ -174,6 +174,8 @@ class testPF extends Query {
         this.dbName = "test";
         this.collectionName = "testing";
         this.projection = {test:1,other:1,subs:1};
+        this.query = {group:1};
+        this.whereKey.test.testing.update = {group:1};
     }
 }
 
