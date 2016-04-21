@@ -1,6 +1,13 @@
 "use strict";
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var rx_server_1 = require('rx-server');
 var mongoDriver = require('mongodb');
 var q = require('q');
+var rxjs_1 = require('rxjs');
 var MomGo = (function () {
     function MomGo(serverName, dbName) {
         this.serverName = serverName;
@@ -116,4 +123,134 @@ var MomGo = (function () {
     return MomGo;
 }());
 exports.MomGo = MomGo;
+var Query = (function (_super) {
+    __extends(Query, _super);
+    function Query(user, data, globalEventHandler, functionName, momgo) {
+        _super.call(this, user, data, globalEventHandler);
+        this.functionName = functionName;
+        this.momgo = momgo;
+        this.docs = [];
+        this.docLisseners = [];
+        this.query = {};
+        this.projection = {};
+        this.dbName = "test";
+        this.collectionName = "testing";
+        this.whereKey = {};
+        var me = this;
+        me.whereKey = {};
+        me.whereKey[me.dbName] = {};
+        me.whereKey[me.dbName][me.collectionName] = { update: 1 };
+        me.observable = rxjs_1.Observable.create(function (_s) {
+            _s.next({ rId: me._rId });
+            me.runQuery(_s).then(function () {
+                me.buildUpdateLisseners(_s, globalEventHandler);
+            });
+            var gc = globalEventHandler.globalEventHandlerClient.createEventLissener(me.functionName, me.whereKey);
+            gc.observable.subscribe(function (x) {
+                me.runQuery(_s, x.msg).then(function () {
+                    me.buildUpdateLisseners(_s, globalEventHandler);
+                });
+            });
+            return function () {
+                gc.dispose();
+                me.docLisseners.forEach(function (idLissener) {
+                    idLissener.dispose();
+                });
+            };
+        });
+    }
+    Query.prototype.buildUpdateLisseners = function (_s, globalEventHandler) {
+        var me = this;
+        var newDocLisseners = [];
+        me.docs.forEach(function (_id) {
+            var key = {};
+            key[me.dbName] = {};
+            key[me.dbName][me.collectionName] = { _id: {} };
+            key[me.dbName][me.collectionName]._id[_id] = 1;
+            var idLissener = globalEventHandler.globalEventHandlerClient.createEventLissener(me.functionName + "_id:" + _id, key);
+            idLissener.observable.subscribe(function (_x) {
+                if (_x.msg.from_rId != me._rId) {
+                    if (me.projection && Object.keys(me.projection).length > 1) {
+                        for (var i in _x.msg.save.$set) {
+                            var val = i.split(".")[0];
+                            if (!me.projection[val]) {
+                                delete _x.msg.save.$set[i];
+                            }
+                        }
+                    }
+                    _s.next({ update: _x.msg });
+                }
+            });
+            newDocLisseners.push(idLissener);
+        });
+        me.docLisseners.forEach(function (_idLissener) {
+            _idLissener.dispose();
+        });
+        me.docLisseners = newDocLisseners;
+    };
+    Query.prototype.runQuery = function (_s, _update) {
+        if (_update === void 0) { _update = { _id: null }; }
+        var me = this;
+        return me.momgo.db(me.db).then(function (_db) {
+            var collection = _db.collection(me.collectionName);
+            var p = q.when(true);
+            if (_update._id && me.docs.indexOf(_update._id) == -1) {
+                p = collection.findOne({ _id: new me.momgo.ObjectID(_update._id) }, { _id: 1 }).then(function (doc) {
+                    return doc ? true : false;
+                });
+            }
+            return p.then(function (shouldFire) {
+                if (shouldFire) {
+                    return collection.find(me.query).project({ _id: 1 }).toArray().then(function (_docs) {
+                        _docs = _docs.map(function (_doc) {
+                            return _doc._id.toString();
+                        });
+                        var resendDocs = false;
+                        _docs.forEach(function (_id, i) {
+                            if (_id != me.docs[i]) {
+                                resendDocs = true;
+                            }
+                            if (me.docs.indexOf(_id) == -1) {
+                                collection.findOne({ _id: new me.momgo.ObjectID(_id) }, me.projection).then(function (doc) {
+                                    _s.next({ doc: doc });
+                                });
+                            }
+                        });
+                        if (resendDocs) {
+                            _s.next({ _ids: _docs });
+                            me.docs = _docs;
+                        }
+                    });
+                }
+            });
+        });
+    };
+    return Query;
+}(rx_server_1.publicFunction));
+exports.Query = Query;
+var Save = (function (_super) {
+    __extends(Save, _super);
+    function Save(user, data, globalEventHandler, momgo) {
+        _super.call(this, user, data, globalEventHandler);
+        this.momgo = momgo;
+        this.dbName = "test";
+        this.collectionName = "testing";
+        var me = this;
+        var key = {};
+        key[me.dbName] = {};
+        key[me.dbName][me.collectionName] = { update: data.save.$set, _id: {} };
+        key[me.dbName][me.collectionName]._id[data._id] = 1;
+        var _s0 = globalEventHandler.globalEventHandlerClient.createEvent('save', key);
+        me.observable = rxjs_1.Observable.create(function (_s) {
+            me.momgo.save(me.dbName, me.collectionName, data._id, data.save).then(function () {
+                _s0.next(data);
+                _s0.dispose();
+                _s.next('complete');
+                _s.complete();
+            });
+        });
+    }
+    return Save;
+}(rx_server_1.publicFunction));
+exports.Save = Save;
 //# sourceMappingURL=index.js.map
