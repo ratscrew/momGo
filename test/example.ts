@@ -45,13 +45,15 @@ app.get('/angular2.dev.js', function (req, res) {
   res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\angular2\\bundles\\angular2.dev.js'));
 });
 
-app.get('/rx-server/clientScripts/rxServer.js', function (req, res) {
-    res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts\\rxServer.js'));
-});
+// app.get('/rx-server/clientScripts/rxServer.js', function (req, res) {
+//     res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts\\rxServer.js'));
+// });
+app.use('/rx-server/clientScripts/',express.static(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts')));
 
-app.get('/clientScripts/momgo.js', function (req, res) {
-    res.sendFile(path.resolve(__dirname + '\\..\\clientScripts\\momgo.js'));
-});
+// app.get('/clientScripts/momgo.js', function (req, res) {
+//     res.sendFile(path.resolve(__dirname + '\\..\\clientScripts\\momgo.js'));
+// });
+app.use('/clientScripts/',express.static(path.resolve(__dirname + '\\..\\clientScripts')));
 
 app.use(express.static(__dirname + '\\public'));
 

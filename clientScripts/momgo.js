@@ -1,9 +1,13 @@
-System.register([], function(exports_1, context_1) {
+System.register(['rxjs/rx'], function(exports_1, context_1) {
     "use strict";
     var __moduleName = context_1 && context_1.id;
+    var rx_1;
     var Query;
     return {
-        setters:[],
+        setters:[
+            function (rx_1_1) {
+                rx_1 = rx_1_1;
+            }],
         execute: function() {
             Query = (function () {
                 function Query(myServer, getFunctionName, saveFunctionName) {
@@ -13,10 +17,11 @@ System.register([], function(exports_1, context_1) {
                     this.ids = [];
                     this.docs = {};
                     this.savedDocs = {};
+                    this.internalStreemSubject = new rx_1.Subject();
                 }
                 Query.prototype.get = function () {
                     var me = this;
-                    return me.myServer.publicFunction(me.getFunctionName).map(function (data) {
+                    var querySreeem = me.myServer.publicFunction(me.getFunctionName).map(function (data) {
                         if (data.rId) {
                             me.rId = data.rId;
                         }
@@ -25,7 +30,7 @@ System.register([], function(exports_1, context_1) {
                         }
                         if (data.doc) {
                             me.docs[data.doc._id] = data.doc;
-                            me.savedDocs[data.doc._id] = me.clone(data.doc);
+                            me.savedDocs[data.doc._id] = data.doc;
                         }
                         if (data.update) {
                             for (var i in data.update.save.$set) {
@@ -63,7 +68,8 @@ System.register([], function(exports_1, context_1) {
                                     }
                             }
                         }
-                    }).sampleTime(33).map(function () {
+                    }).sampleTime(33);
+                    return rx_1.Observable.merge(querySreeem, me.internalStreemSubject.asObservable()).map(function () {
                         return me.ids.map(function (_id) {
                             return me.docs[_id];
                         }).filter(function (doc) {
@@ -76,9 +82,8 @@ System.register([], function(exports_1, context_1) {
                     var doc = me.docs[_id];
                     var savedDoc = me.savedDocs[_id];
                     if (doc && savedDoc) {
-                        var clonedDoc_1 = me.clone(doc);
                         return me.myServer.publicFunction(me.saveFunctionName, { _id: _id, save: me.objDeepMatch(doc, savedDoc).save, from_rId: me.rId }).subscribe(null, null, function () {
-                            me.savedDocs[_id] = clonedDoc_1;
+                            me.savedDocs[_id] = doc;
                         });
                     }
                 };
@@ -104,7 +109,7 @@ System.register([], function(exports_1, context_1) {
                                     returnObj.save.$set = {};
                                 returnObj.save.$set[this.addrArrayToStr(this.addToAddrArray(location, i))] = odj1[i];
                             }
-                            else if (this.isArray(odj1[i])) {
+                            else if (this.isArray(odj1[i]) && odj1[i] !== odj2[i]) {
                                 this.objDeepMatch(odj1[i], odj2[i], this.addToAddrArray(location, i), returnObj);
                             }
                             else if (this.isDate(odj1[i])) {
@@ -119,11 +124,11 @@ System.register([], function(exports_1, context_1) {
                                     returnObj.save.$set = {};
                                 returnObj.save.$set[this.addrArrayToStr(this.addToAddrArray(location, i))] = odj1[i];
                             }
-                            else if (this.isObject(odj1[i])) {
+                            else if (this.isObject(odj1[i]) && odj1[i] !== odj2[i]) {
                                 this.objDeepMatch(odj1[i], odj2[i], this.addToAddrArray(location, i), returnObj);
                             }
                             else {
-                                if (odj1[i] != odj2[i]) {
+                                if (odj1[i] !== odj2[i]) {
                                     if (!returnObj.save.$set)
                                         returnObj.save.$set = {};
                                     returnObj.save.$set[this.addrArrayToStr(this.addToAddrArray(location, i))] = odj1[i];
@@ -214,6 +219,63 @@ System.register([], function(exports_1, context_1) {
                         var i = addr.shift();
                         return this.objAddrOfParent(obj[i], addr);
                     }
+                };
+                Query.prototype.set = function (_addr, value, obj) {
+                    var addr;
+                    if (!Array.isArray(_addr))
+                        addr = _addr.split(".");
+                    else
+                        addr = this.newArray(_addr);
+                    if (!obj)
+                        obj = this.docs;
+                    if (addr.length == 1) {
+                        if (value === undefined)
+                            delete obj[addr[0]];
+                        else {
+                            obj[addr[0]] = value;
+                        }
+                        this.internalStreemSubject.next(true);
+                    }
+                    else if (addr.length > 1) {
+                        if (obj[addr[0]] == undefined) {
+                            if (parseInt(addr[1]).toString() == addr[1].toString())
+                                obj[addr[0]] = [];
+                            else
+                                obj[addr[0]] = {};
+                        }
+                        if (obj[addr[0]].push && parseInt(addr[1]).toString() == addr[1].toString() && obj[addr[0]].length < parseInt(addr[1])) {
+                            var newI = parseInt(addr[1]);
+                            while (newI < obj[addr[0]].length) {
+                                obj[addr[0]].push({});
+                            }
+                        }
+                        if (this.isString(obj[addr[0]])) {
+                            obj[addr[0]] = {};
+                        }
+                        if (this.isArray(obj[addr[0]])) {
+                            obj[addr[0]] = this.newArray(obj[addr[0]]);
+                        }
+                        else if (this.isObject(obj[addr[0]]) && !this.isDate(obj[addr[0]])) {
+                            obj[addr[0]] = this.newObject(obj[addr[0]]);
+                        }
+                        var i = addr.shift();
+                        this.set(addr, value, obj[i]);
+                    }
+                };
+                Query.prototype.newArray = function (oldArray) {
+                    var newArray = new Array(oldArray.length);
+                    oldArray.forEach(function (item, i) {
+                        newArray[i] = item;
+                    });
+                    return newArray;
+                };
+                Query.prototype.newObject = function (oldObj) {
+                    var newObj = {};
+                    ;
+                    for (var i in oldObj) {
+                        newObj[i] = oldObj[i];
+                    }
+                    return newObj;
                 };
                 return Query;
             }());

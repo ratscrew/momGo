@@ -7,13 +7,16 @@ export class Query {
     docs:{[id:string]:any} = {};
     savedDocs:{[id:string]:any} = {};
     private rId;
+    private internalStreemSubject:Subject<any> = new Subject();
+    
     constructor(public myServer: serverRx, public getFunctionName:string, public saveFunctionName:string) {
 
     }
     
     get(){
         let me = this;
-        return me.myServer.publicFunction(me.getFunctionName).map((data)=>{
+        
+        let querySreeem =  me.myServer.publicFunction(me.getFunctionName).map((data)=>{
             if(data.rId){
                 me.rId = data.rId;
             }
@@ -22,7 +25,7 @@ export class Query {
             }
             if(data.doc){
                 me.docs[data.doc._id] = data.doc;
-                me.savedDocs[data.doc._id] = me.clone(data.doc);
+                me.savedDocs[data.doc._id] = data.doc;
             }
             if(data.update){
                 for (var i in data.update.save.$set) {
@@ -65,7 +68,9 @@ export class Query {
                 }
             }
 
-        }).sampleTime(33).map(()=>{
+        }).sampleTime(33)
+        
+        return Observable.merge(querySreeem,me.internalStreemSubject.asObservable()).map(()=>{
             return me.ids.map((_id)=>{
                 return me.docs[_id];
             }).filter((doc)=>{
@@ -80,9 +85,9 @@ export class Query {
         let savedDoc = me.savedDocs[_id];
         
         if(doc && savedDoc){
-            let clonedDoc = me.clone(doc);
+
             return me.myServer.publicFunction(me.saveFunctionName,{_id:_id,save:me.objDeepMatch(doc,savedDoc).save,from_rId:me.rId}).subscribe(null,null,()=>{
-                me.savedDocs[_id] = clonedDoc;
+                me.savedDocs[_id] = doc;
             })
         }
     }
@@ -104,7 +109,7 @@ export class Query {
                     if (!returnObj.save.$set) returnObj.save.$set = {};
                     returnObj.save.$set[this.addrArrayToStr(this.addToAddrArray(location, i))] = odj1[i];
                 }
-                else if (this.isArray(odj1[i])) {
+                else if (this.isArray(odj1[i]) && odj1[i] !== odj2[i]) {
                     this.objDeepMatch(odj1[i], odj2[i], this.addToAddrArray(location, i), returnObj);
                 }
                 else if (this.isDate(odj1[i])) {
@@ -117,11 +122,11 @@ export class Query {
                     if (!returnObj.save.$set) returnObj.save.$set = {};
                     returnObj.save.$set[this.addrArrayToStr(this.addToAddrArray(location, i))] = odj1[i];
                 }
-                else if (this.isObject(odj1[i])) {
+                else if (this.isObject(odj1[i]) && odj1[i] !== odj2[i]) {
                     this.objDeepMatch(odj1[i],odj2[i], this.addToAddrArray(location, i), returnObj)
                 }
                 else {
-                    if (odj1[i] != odj2[i]) {
+                    if (odj1[i] !== odj2[i]) {
                         if (!returnObj.save.$set) returnObj.save.$set = {};
                         returnObj.save.$set[this.addrArrayToStr(this.addToAddrArray(location, i))] = odj1[i];
                     }
@@ -216,4 +221,66 @@ export class Query {
             return this.objAddrOfParent(obj[i], addr);
         }
     }
+    
+    set(_addr,value,obj?) {
+        let addr:string[];
+        if (!Array.isArray(_addr)) addr = _addr.split(".");
+        else addr = this.newArray(_addr);
+        
+        if (!obj) obj = this.docs;
+        
+        if (addr.length == 1) {
+            if(value === undefined) delete obj[addr[0]];
+            else {
+                obj[addr[0]] = value;
+            }  
+            this.internalStreemSubject.next(true);
+        }
+        else if (addr.length > 1) {
+            if(obj[addr[0]] == undefined){
+                if(parseInt(addr[1]).toString() ==  addr[1].toString()) obj[addr[0]] = [];
+                else obj[addr[0]] = {};
+            }
+            if(obj[addr[0]].push && parseInt(addr[1]).toString() ==  addr[1].toString() && obj[addr[0]].length <  parseInt(addr[1])){
+                var newI = parseInt(addr[1]);
+                while (newI < obj[addr[0]].length) {
+                    obj[addr[0]].push({})
+                }
+            }
+            if(this.isString(obj[addr[0]])){
+                obj[addr[0]] = {};
+            }
+            
+            if(this.isArray(obj[addr[0]])){
+                obj[addr[0]] = this.newArray(obj[addr[0]]);
+            }
+            else if(this.isObject(obj[addr[0]]) && !this.isDate(obj[addr[0]])){
+                obj[addr[0]] = this.newObject(obj[addr[0]]);
+            }
+            
+             var i = addr.shift();
+             this.set(addr,value,obj[i])
+        }
+    }
+    
+    newArray(oldArray:Array<any>):Array<any>{
+        let newArray:Array<any> = new Array(oldArray.length);
+        
+        oldArray.forEach((item,i)=>{
+            newArray[i] = item;
+        })
+        
+        return newArray;
+    }
+    
+    newObject(oldObj:Object):Object{
+        let newObj:Object= {};;
+        
+        for(var i in oldObj){
+            newObj[i] = oldObj[i];
+        }
+        
+        return newObj;
+    }
+    
 }

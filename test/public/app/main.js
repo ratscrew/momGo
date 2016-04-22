@@ -54,6 +54,35 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rxjs/rx', 'rx-se
                 function testPF(myServer) {
                     _super.call(this, myServer, "testPF", "save");
                 }
+                testPF.prototype.query = function () {
+                    var me = this;
+                    return me.get().map(function (_docs) {
+                        _docs.forEach(function (_doc) {
+                            if (_doc.other === undefined) {
+                                // console.log({fire:_doc._id})
+                                me.set([_doc._id, 'other'], { a: 1, b: 2, c: 3 });
+                            }
+                            if (_doc.test === undefined) {
+                                //console.log({fire:_doc._id})
+                                me.set([_doc._id, 'test'], "");
+                            }
+                            if (_doc.subs === undefined) {
+                                // console.log({fire:_doc._id})
+                                me.set([_doc._id, 'subs'], [{ val: "" }, { val: "" }, { val: "" }, { val: "" }, { val: "" }, { val: "" }]);
+                            }
+                        });
+                        return _docs.filter(function (_doc) {
+                            if (_doc.other !== undefined && _doc.subs !== undefined && _doc.test !== undefined) {
+                                return true;
+                            }
+                            else {
+                                //console.log(_doc._id)
+                                return false;
+                            }
+                            ;
+                        });
+                    });
+                };
                 testPF = __decorate([
                     core_1.Injectable(),
                     __param(0, core_1.Inject(myServer)), 
@@ -67,36 +96,40 @@ System.register(['angular2/platform/browser', 'angular2/core', 'rxjs/rx', 'rx-se
                     this.test = [];
                     this.saveSubject = new rx_1.Subject();
                     this.saveOberverable = this.saveSubject.asObservable();
-                    this.idsToSave = [];
+                    this.idsToSave = {};
                     var vm = this;
-                    testPF.get().subscribe(function (_x) {
+                    testPF.query().subscribe(function (_x) {
                         vm.test = _x;
                         vm.test.forEach(function (_doc) {
-                            if (!_doc.other)
-                                _doc.other = { a: 1, b: 2, c: 3 };
-                            if (!_doc.test)
-                                _doc.test = "";
-                            if (!_doc.subs)
-                                _doc.subs = [{ val: "" }, { val: "" }, { val: "" }, { val: "" }, { val: "" }, { val: "" }];
+                            //if(!_doc.other) _doc.other = {a:1,b:2,c:3};
+                            //if(!_doc.test) _doc.test = "";
+                            //if(!_doc.subs) testPF.set([_doc._id,'subs'], [{val:""},{val:""},{val:""},{val:""},{val:""},{val:""}]);
                         });
                     });
                     vm.saveOberverable.map(function (_id) {
-                        vm.idsToSave.push(_id);
+                        vm.idsToSave[_id] = true;
                         return vm.idsToSave;
                     }).debounceTime(300).subscribe(function () {
-                        vm.idsToSave.forEach(function (_id) {
+                        for (var _id in vm.idsToSave) {
                             vm.testPF.save(_id);
-                        });
-                        vm.idsToSave = [];
+                        }
+                        vm.idsToSave = {};
                     });
                 }
-                AppComponent.prototype.save = function (_id) {
-                    this.saveSubject.next(_id);
+                AppComponent.prototype.getId = function (i, doc) {
+                    return doc._id;
+                };
+                AppComponent.prototype.getIndex = function (i, doc) {
+                    return i;
+                };
+                AppComponent.prototype.save = function (addr, value) {
+                    this.testPF.set(addr, value);
+                    this.saveSubject.next(addr[0]);
                 };
                 AppComponent = __decorate([
                     core_1.Component({
                         selector: 'my-app',
-                        template: "<h1>My First Angular 2 App</h1>\n    <div *ngFor=\"#item of test\" style=\"width: 1746px;\" >\n        <input [value]=\"item.test\" (input)=\"item.test = $event.target.value; save(item._id)\" />\n        \n        <input [value]=\"item.other.a\" (input)=\"item.other.a = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.b\" (input)=\"item.other.b = $event.target.value; save(item._id)\" />\n        <input [value]=\"item.other.c\" (input)=\"item.other.c = $event.target.value; save(item._id)\" />\n        \n        <input *ngFor=\"#subItem of item.subs\" [value]=\"subItem.val\" (input)=\"subItem.val = $event.target.value; save(item._id)\" />\n        \n    </div>",
+                        template: "<h1>My First Angular 2 App</h1>\n    <div *ngFor=\"#item of test; trackBy: getId\" style=\"width: 1746px;\" >\n        <input [value]=\"item.test\" (input)=\"save([item._id,'test'],$event.target.value)\" />\n        \n        <input [value]=\"item.other.a\" (input)=\"save([item._id,'other','a'],$event.target.value)\" />\n        <input [value]=\"item.other.b\" (input)=\"save([item._id,'other','a'],$event.target.value)\" />\n        <input [value]=\"item.other.c\" (input)=\"save([item._id,'other','a'],$event.target.value)\" />\n        \n        <input *ngFor=\"#subItem of item.subs; #i = index; trackBy: getIndex\" [value]=\"subItem.val\" (input)=\"save([item._id,'subs',i,'val'],$event.target.value)\" />\n        \n    </div>",
                         providers: [testPF]
                     }), 
                     __metadata('design:paramtypes', [testPF])
