@@ -191,7 +191,7 @@ var Query = (function (_super) {
     Query.prototype.runQuery = function (_s, _update) {
         if (_update === void 0) { _update = { _id: null }; }
         var me = this;
-        return me.momgo.db(me.db).then(function (_db) {
+        return me.momgo.db(me.dbName).then(function (_db) {
             var collection = _db.collection(me.collectionName);
             var p = q.when(true);
             if (_update._id && me.docs.indexOf(_update._id) == -1) {

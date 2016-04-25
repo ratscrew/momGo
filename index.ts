@@ -201,7 +201,7 @@ export class Query extends publicFunction {
     
     runQuery(_s:Subject<any>,_update = {_id:null}){
         let me = this;
-        return me.momgo.db(me.db).then((_db)=>{
+        return me.momgo.db(me.dbName).then((_db)=>{
                 let collection:mongoDriver.Collection = _db.collection(me.collectionName);
                 let p = q.when(true);
                 if(_update._id && me.docs.indexOf(_update._id)==-1){
