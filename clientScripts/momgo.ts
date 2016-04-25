@@ -13,10 +13,10 @@ export class Query {
 
     }
     
-    get(){
+    get(functionName = this.getFunctionName,data = {}){
         let me = this;
         
-        let querySreeem =  me.myServer.publicFunction(me.getFunctionName).map((data)=>{
+        let querySreeem =  me.myServer.publicFunction(functionName ||me.getFunctionName,data).map((data)=>{
             if(data.rId){
                 me.rId = data.rId;
             }

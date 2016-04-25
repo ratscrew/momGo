@@ -19,9 +19,11 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                     this.savedDocs = {};
                     this.internalStreemSubject = new rx_1.Subject();
                 }
-                Query.prototype.get = function () {
+                Query.prototype.get = function (functionName, data) {
+                    if (functionName === void 0) { functionName = this.getFunctionName; }
+                    if (data === void 0) { data = {}; }
                     var me = this;
-                    var querySreeem = me.myServer.publicFunction(me.getFunctionName).map(function (data) {
+                    var querySreeem = me.myServer.publicFunction(functionName || me.getFunctionName, data).map(function (data) {
                         if (data.rId) {
                             me.rId = data.rId;
                         }
