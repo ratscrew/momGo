@@ -131,7 +131,7 @@ export class Query extends publicFunction {
     db;
     docs = [];
     docLisseners:globalEventLissener[] = [];
-    query = {};
+    query:any = {};
     projection = {};
     dbName:string = "test";
     collectionName:string = "testing";
