@@ -230,7 +230,8 @@ export class Query {
         if (!obj) obj = this.docs;
         
         if (addr.length == 1) {
-            if(value === undefined) delete obj[addr[0]];
+            if(this.isArray(obj) && value === undefined) obj.splice(addr[0],1)
+            else if(value === undefined) delete obj[addr[0]];
             else {
                 obj[addr[0]] = value;
             }  
