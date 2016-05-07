@@ -72,25 +72,28 @@ export class MomGo {
             let update:any = {};
             if(save.$set) update.$set = save.$set;
             if(save.$unset) update.$unset = save.$unset;
-            return collection.updateOne({_id:new me.ObjectID(_id)},update).then(()=>{
-                let $pull =[];
-                if(save.$pull && Object.keys(save.$pull).length > 0)  {
-                    for (var i in save.$pull){
-                        var p = {};
-                        p[i] = null;
-                        $pull.push(p);
+            if(Object.keys(update).length > 0){
+                return collection.updateOne({_id:new me.ObjectID(_id)},update).then(()=>{
+                    let $pull =[];
+                    if(save.$pull && Object.keys(save.$pull).length > 0)  {
+                        for (var i in save.$pull){
+                            var p = {};
+                            p[i] = null;
+                            $pull.push(p);
+                        }
                     }
-                }
-                
-                let qList = [];
-                $pull.forEach(function (p) {
-                    qList.push(collection.updateOne({_id: new me.ObjectID(_id)}, {$pull:p}));
-                });
-                
-                return q.all(qList).then(()=>{
-                    console.log('saved');
-                });
-            })
+                    
+                    let qList = [];
+                    $pull.forEach(function (p) {
+                        qList.push(collection.updateOne({_id: new me.ObjectID(_id)}, {$pull:p}));
+                    });
+                    
+                    return q.all(qList).then(()=>{
+                        console.log('saved');
+                    });
+                })
+            }
+            else return console.log('nothing to save');
         })
     }
     
