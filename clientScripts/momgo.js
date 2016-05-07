@@ -143,11 +143,14 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                             if (odj1 === undefined || odj1[i] === undefined) {
                                 if (!returnObj.save.$unset)
                                     returnObj.save.$unset = {};
-                                returnObj.save.$unset[this.addrArrayToStr(this.addToAddrArray(location, i))] = "";
                                 if (this.isArray(odj2)) {
+                                    returnObj.save.$set[this.addrArrayToStr(this.addToAddrArray(location, i))] = null;
                                     if (!returnObj.save.$pull)
                                         returnObj.save.$pull = {};
                                     returnObj.save.$pull[this.addrArrayToStr(location)] = null;
+                                }
+                                else {
+                                    returnObj.save.$unset[this.addrArrayToStr(this.addToAddrArray(location, i))] = "";
                                 }
                             }
                         }

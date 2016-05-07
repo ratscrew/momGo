@@ -64,9 +64,7 @@ var MomGo = (function () {
         var me = this;
         if (save.$set && Object.keys(save.$set).length > 0)
             me.scanObj(save.$set);
-        for (var key in save) {
-            console.log(save[key]);
-        }
+        console.log(save);
         return me.db(dbName).then(function (_db) {
             var collection = _db.collection(collectionName);
             var update = {};
