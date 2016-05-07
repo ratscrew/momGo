@@ -239,11 +239,11 @@ var Save = (function (_super) {
         this.collectionName = "testing";
         var me = this;
         var key = {};
-        key[me.dbName] = {};
-        key[me.dbName][me.collectionName] = { update: data.save.$set, _id: {} };
-        key[me.dbName][me.collectionName]._id[data._id] = 1;
-        var _s0 = globalEventHandler.globalEventHandlerClient.createEvent('save', key);
         me.observable = rxjs_1.Observable.create(function (_s) {
+            key[me.dbName] = {};
+            key[me.dbName][me.collectionName] = { update: data.save.$set, _id: {} };
+            key[me.dbName][me.collectionName]._id[data._id] = 1;
+            var _s0 = globalEventHandler.globalEventHandlerClient.createEvent('save', key);
             me.momgo.save(me.dbName, me.collectionName, data._id, data.save).then(function () {
                 _s0.next(data);
                 _s0.dispose();

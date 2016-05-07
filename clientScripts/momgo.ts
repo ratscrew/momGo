@@ -29,8 +29,9 @@ export class Query {
             }
             if(data.update){
                 for (var i in data.update.save.$set) {
-                    var pk = me.objAddrOfParent(me.docs[data.update._id], i);
-                    pk.parent[pk.childKey] = data.update.save.$set[i];
+                    //var pk = me.objAddrOfParent(me.docs[data.update._id], i);
+                    //pk.parent[pk.childKey] = data.update.save.$set[i];
+                    this.set([data.update._id].concat(i.split('.')),data.update.save.$set[i]);
                 }
                 for (var i in data.update.save.$set) {
                     var pk = me.objAddrOfParent(me.savedDocs[data.update._id], i);
@@ -39,8 +40,9 @@ export class Query {
 
 
                 for (var i in data.update.save.$unset) {
-                    var pk = me.objAddrOfParent(me.docs[data.update._id], i);
-                    delete pk.parent[pk.childKey];
+                    // var pk = me.objAddrOfParent(me.docs[data.update._id], i);
+                    // delete pk.parent[pk.childKey];
+                    this.set([data.update._id].concat(i.split('.')),undefined);
                 }
                 for (var i in data.update.save.$unset) {
                     var pk = me.objAddrOfParent(me.savedDocs[data.update._id], i);
