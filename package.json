@@ -1,6 +1,6 @@
 {
   "name": "momgo",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "mongodb helper for angular 2 on server-rx",
   "main": "index.js",
   "scripts": {

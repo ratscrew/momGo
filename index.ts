@@ -248,12 +248,13 @@ export class Save extends publicFunction {
         
         let me = this;
         let key = {};
-        key[me.dbName] ={};
-        key[me.dbName][me.collectionName] = {update:data.save.$set,_id:{}};
-        key[me.dbName][me.collectionName]._id[data._id] = 1;
         
-        let _s0:globalEvent = globalEventHandler.globalEventHandlerClient.createEvent('save', key);
         me.observable = Observable.create((_s:Subject<any>)=>{
+            key[me.dbName] ={};
+            key[me.dbName][me.collectionName] = {update:data.save.$set,_id:{}};
+            key[me.dbName][me.collectionName]._id[data._id] = 1;
+            
+            let _s0:globalEvent = globalEventHandler.globalEventHandlerClient.createEvent('save', key);
             me.momgo.save(me.dbName,me.collectionName,data._id,data.save).then(()=>{
                 _s0.next(data);
                 _s0.dispose();
