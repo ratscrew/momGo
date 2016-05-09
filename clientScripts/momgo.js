@@ -20,6 +20,7 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                     this.internalStreemSubject = new rx_1.Subject();
                 }
                 Query.prototype.get = function (functionName, data) {
+                    var _this = this;
                     if (functionName === void 0) { functionName = this.getFunctionName; }
                     if (data === void 0) { data = {}; }
                     var me = this;
@@ -36,16 +37,18 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                         }
                         if (data.update) {
                             for (var i in data.update.save.$set) {
-                                var pk = me.objAddrOfParent(me.docs[data.update._id], i);
-                                pk.parent[pk.childKey] = data.update.save.$set[i];
+                                //var pk = me.objAddrOfParent(me.docs[data.update._id], i);
+                                //pk.parent[pk.childKey] = data.update.save.$set[i];
+                                _this.set([data.update._id].concat(i.split('.')), data.update.save.$set[i]);
                             }
                             for (var i in data.update.save.$set) {
                                 var pk = me.objAddrOfParent(me.savedDocs[data.update._id], i);
                                 pk.parent[pk.childKey] = me.clone(data.update.save.$set[i]);
                             }
                             for (var i in data.update.save.$unset) {
-                                var pk = me.objAddrOfParent(me.docs[data.update._id], i);
-                                delete pk.parent[pk.childKey];
+                                // var pk = me.objAddrOfParent(me.docs[data.update._id], i);
+                                // delete pk.parent[pk.childKey];
+                                _this.set([data.update._id].concat(i.split('.')), undefined);
                             }
                             for (var i in data.update.save.$unset) {
                                 var pk = me.objAddrOfParent(me.savedDocs[data.update._id], i);
@@ -70,8 +73,8 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                                     }
                             }
                         }
-                    }).sampleTime(33);
-                    return rx_1.Observable.merge(querySreeem, me.internalStreemSubject.asObservable()).map(function () {
+                    }).sampleTime(200);
+                    return rx_1.Observable.merge(querySreeem, me.internalStreemSubject.asObservable()).debounceTime(10).map(function () {
                         return me.ids.map(function (_id) {
                             return me.docs[_id];
                         }).filter(function (doc) {
@@ -141,15 +144,17 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                     for (var i in odj2) {
                         if (!this.isFunction(odj2[i])) {
                             if (odj1 === undefined || odj1[i] === undefined) {
-                                if (!returnObj.save.$unset)
-                                    returnObj.save.$unset = {};
                                 if (this.isArray(odj2)) {
+                                    if (!returnObj.save.$set)
+                                        returnObj.save.$set = {};
                                     returnObj.save.$set[this.addrArrayToStr(this.addToAddrArray(location, i))] = null;
                                     if (!returnObj.save.$pull)
                                         returnObj.save.$pull = {};
                                     returnObj.save.$pull[this.addrArrayToStr(location)] = null;
                                 }
                                 else {
+                                    if (!returnObj.save.$unset)
+                                        returnObj.save.$unset = {};
                                     returnObj.save.$unset[this.addrArrayToStr(this.addToAddrArray(location, i))] = "";
                                 }
                             }

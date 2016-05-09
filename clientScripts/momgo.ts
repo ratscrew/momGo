@@ -70,9 +70,9 @@ export class Query {
                 }
             }
 
-        }).sampleTime(33)
+        }).sampleTime(200)
         
-        return Observable.merge(querySreeem,me.internalStreemSubject.asObservable()).map(()=>{
+        return Observable.merge(querySreeem,me.internalStreemSubject.asObservable()).debounceTime(10).map(()=>{
             return me.ids.map((_id)=>{
                 return me.docs[_id];
             }).filter((doc)=>{
