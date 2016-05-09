@@ -73,7 +73,7 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                                     }
                             }
                         }
-                    }).sampleTime(200);
+                    }).debounceTime(20);
                     return rx_1.Observable.merge(querySreeem, me.internalStreemSubject.asObservable()).debounceTime(10).map(function () {
                         return me.ids.map(function (_id) {
                             return me.docs[_id];
