@@ -1,6 +1,6 @@
 {
   "name": "momgo",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "mongodb helper for angular 2 on server-rx",
   "main": "index.js",
   "scripts": {
@@ -35,7 +35,7 @@
     "performance-now": "^0.2.0",
     "q": "^1.4.1",
     "reflect-metadata": "0.1.2",
-    "rx-server": "0.0.17",
+    "rx-server": "0.0.18",
     "rxjs": "5.0.0-beta.2",
     "socket.io": "^1.4.5",
     "systemjs": "0.19.26",
