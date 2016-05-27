@@ -1,4 +1,4 @@
-import {Observable, Subject} from 'rxjs/rx';
+import {Observable, Subject} from 'rxjs/Rx';
 
 import {serverRx} from 'rx-server/clientScripts/rxServer';
 
@@ -224,6 +224,7 @@ export class Query {
         }
         else {
             var i = addr.shift();
+            if(obj[i] == null) obj[i] = {};
             return this.objAddrOfParent(obj[i], addr);
         }
     }

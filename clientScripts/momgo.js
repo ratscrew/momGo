@@ -1,12 +1,12 @@
-System.register(['rxjs/rx'], function(exports_1, context_1) {
+System.register(['rxjs/Rx'], function(exports_1, context_1) {
     "use strict";
     var __moduleName = context_1 && context_1.id;
-    var rx_1;
+    var Rx_1;
     var Query;
     return {
         setters:[
-            function (rx_1_1) {
-                rx_1 = rx_1_1;
+            function (Rx_1_1) {
+                Rx_1 = Rx_1_1;
             }],
         execute: function() {
             Query = (function () {
@@ -17,7 +17,7 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                     this.ids = [];
                     this.docs = {};
                     this.savedDocs = {};
-                    this.internalStreemSubject = new rx_1.Subject();
+                    this.internalStreemSubject = new Rx_1.Subject();
                 }
                 Query.prototype.get = function (functionName, data) {
                     var _this = this;
@@ -74,7 +74,7 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                             }
                         }
                     }).debounceTime(50);
-                    return rx_1.Observable.merge(querySreeem, me.internalStreemSubject.asObservable()).debounceTime(10).map(function () {
+                    return Rx_1.Observable.merge(querySreeem, me.internalStreemSubject.asObservable()).debounceTime(10).map(function () {
                         return me.ids.map(function (_id) {
                             return me.docs[_id];
                         }).filter(function (doc) {
@@ -227,6 +227,8 @@ System.register(['rxjs/rx'], function(exports_1, context_1) {
                     }
                     else {
                         var i = addr.shift();
+                        if (obj[i] == null)
+                            obj[i] = {};
                         return this.objAddrOfParent(obj[i], addr);
                     }
                 };
