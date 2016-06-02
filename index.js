@@ -218,6 +218,10 @@ var Query = (function (_super) {
                                 });
                             }
                         });
+                        me.docs.forEach(function (_id, i) {
+                            if (_id != _docs[i])
+                                resendDocs = true;
+                        });
                         if (resendDocs) {
                             _s.next({ _ids: _docs });
                             me.docs = _docs;

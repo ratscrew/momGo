@@ -227,6 +227,9 @@ export class Query extends publicFunction {
                                     })
                                 }
                             })
+                            me.docs.forEach((_id,i) =>{
+                                if(_id != _docs[i]) resendDocs = true;
+                            })
                             if (resendDocs) {
                                 _s.next({_ids:_docs});
                                 me.docs = _docs;
