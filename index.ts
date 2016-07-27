@@ -254,7 +254,8 @@ export class Save extends publicFunction {
         
         me.observable = Observable.create((_s:Subject<any>)=>{
             key[me.dbName] ={};
-            key[me.dbName][me.collectionName] = {update:data.save.$set,_id:{}};
+            key[me.dbName][me.collectionName] = {update:me.buildUpdateKey(data.save.$set),_id:{}};
+
             key[me.dbName][me.collectionName]._id[data._id] = 1;
             
             let _s0:globalEvent = globalEventHandler.globalEventHandlerClient.createEvent('save', key);
@@ -265,5 +266,28 @@ export class Save extends publicFunction {
                 _s.complete();
             })
         })
+    }
+
+    buildUpdateKey(_set){
+        let update = {}, me = this;
+        if(!_set || Object.keys(_set).length == 0) return update;
+        Object.keys(_set).forEach(_key => {
+            me.buildObj(update,_key.split('.'))
+        });
+        return update;
+    }
+
+    buildObj(obj,array:string[]){
+        let me = this;
+        if(array[0]){
+            let key = array[0];
+            if(!obj[key]) obj[key] = 1
+            array.splice(0,1);
+            if(array.length > 0) {
+                if(obj[key] == 1) obj[key] = {};
+                me.buildObj(obj[key],array)
+            }
+        }
+        return obj;
     }
 }
