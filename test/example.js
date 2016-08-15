@@ -5,7 +5,7 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var rx_server_1 = require('rx-server');
-var rxjs_1 = require('rxjs');
+var index_1 = require('../index');
 var express = require('express');
 var app = express();
 var path = require('path');
@@ -36,46 +36,46 @@ app.use('/rxjs', express.static(path.resolve(__dirname + '\\..\\node_modules\\rx
 app.get('/angular2.dev.js', function (req, res) {
     res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\angular2\\bundles\\angular2.dev.js'));
 });
-app.get('/rx-server/clientScripts/rxServer.js', function (req, res) {
-    res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts\\rxServer.js'));
-});
+// app.get('/rx-server/clientScripts/rxServer.js', function (req, res) {
+//     res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts\\rxServer.js'));
+// });
+app.use('/rx-server/clientScripts/', express.static(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts')));
+// app.get('/clientScripts/momgo.js', function (req, res) {
+//     res.sendFile(path.resolve(__dirname + '\\..\\clientScripts\\momgo.js'));
+// });
+app.use('/clientScripts/', express.static(path.resolve(__dirname + '\\..\\clientScripts')));
 app.use(express.static(__dirname + '\\public'));
 _s.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
+var momgo = new index_1.MomGo("mongodb://test:1234@10.250.100.250:27017,10.252.100.48:27017?PreferredMember=nearest", "test");
 var testPF = (function (_super) {
     __extends(testPF, _super);
     function testPF(user, data, globalEventHandler) {
-        console.log('testPF');
-        _super.call(this, user, data, globalEventHandler);
-        this.observable = rxjs_1.Observable.create(function (_s) {
-            console.log('testPF.observable');
-            var t = setInterval(function () {
-                console.log('testPF.observable.next');
-                _s.next('testing');
-            }, 1000);
-            var gc = globalEventHandler.globalEventHandlerClient.createEventLissener("testPF", {});
-            gc.observable.subscribe(function (x) {
-                console.log('testPF.gc.next');
-                _s.next(x);
-            }, function () { }, function () {
-                _s.complete();
-            });
-            setTimeout(function () {
-                gc.dispose();
-            }, 20000);
-            return function () {
-                clearInterval(t);
-            };
-        });
+        _super.call(this, user, data, globalEventHandler, 'testPF', momgo);
+        this.dbName = "test";
+        this.collectionName = "testing";
+        this.projection = { test: 1, other: 1, subs: 1 };
+        this.query = { group: 1 };
+        this.whereKey.test.testing.update = { group: 1 };
     }
     return testPF;
-}(rx_server_1.publicFunction));
+}(index_1.Query));
 s.addPublicFunction("testPF", testPF);
-var _s0 = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne', { test: 1 });
-var t0 = setInterval(function () { return _s0.next('fire one'); }, 1000);
-setTimeout(function () {
-    _s0.dispose();
-    clearInterval(t0);
-}, 120000);
+// let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne',{test:1});
+// let t0 =  setInterval(()=> _s0.next('fire one'),1000);
+// setTimeout(()=>{
+//     _s0.dispose();
+//     clearInterval(t0);
+// },120000);
+var save = (function (_super) {
+    __extends(save, _super);
+    function save(user, data, globalEventHandler) {
+        _super.call(this, user, data, globalEventHandler, momgo);
+        this.dbName = "test";
+        this.collectionName = "testing";
+    }
+    return save;
+}(index_1.Save));
+s.addPublicFunction("save", save);
 //# sourceMappingURL=example.js.map

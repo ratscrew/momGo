@@ -1,6 +1,7 @@
-import {server, publicFunction,globalEventHandler,globalEvent} from 'rx-server';
+import {server, publicFunction,globalEventHandler,globalEvent,globalEventLissener} from 'rx-server';
 import {Observable,Subject} from 'rxjs';
-import {} from '../index_';
+import {MomGo,Query,Save} from '../index';
+import * as q from 'q';
 
 var express = require('express');
 var app = express();
@@ -44,9 +45,15 @@ app.get('/angular2.dev.js', function (req, res) {
   res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\angular2\\bundles\\angular2.dev.js'));
 });
 
-app.get('/rx-server/clientScripts/rxServer.js', function (req, res) {
-    res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts\\rxServer.js'));
-});
+// app.get('/rx-server/clientScripts/rxServer.js', function (req, res) {
+//     res.sendFile(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts\\rxServer.js'));
+// });
+app.use('/rx-server/clientScripts/',express.static(path.resolve(__dirname + '\\..\\node_modules\\rx-server\\clientScripts')));
+
+// app.get('/clientScripts/momgo.js', function (req, res) {
+//     res.sendFile(path.resolve(__dirname + '\\..\\clientScripts\\momgo.js'));
+// });
+app.use('/clientScripts/',express.static(path.resolve(__dirname + '\\..\\clientScripts')));
 
 app.use(express.static(__dirname + '\\public'));
 
@@ -54,53 +61,43 @@ _s.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
 
+let momgo = new MomGo("mongodb://test:1234@10.250.100.250:27017,10.252.100.48:27017?PreferredMember=nearest","test");
 
 
-class testPF extends publicFunction {
+class testPF extends Query {
     constructor(user:Object, data:any,globalEventHandler:globalEventHandler){
-        console.log('testPF');
-        super(user, data,globalEventHandler);
-        this.observable = Observable.create((_s:Subject<any>)=>{
-            console.log('testPF.observable');
-            let t = setInterval(()=>{
-                console.log('testPF.observable.next');
-                _s.next('testing')
-            },1000)
-            
-
-            
-            let gc =  globalEventHandler.globalEventHandlerClient.createEventLissener("testPF",{})
-            gc.observable.subscribe((x)=>{
-                console.log('testPF.gc.next');
-                _s.next(x);
-                
-            },()=>{},
-            ()=>{
-                _s.complete();
-            })
-            
-            
-            setTimeout(()=>{
-                gc.dispose();
-            },20000);
-            
-           return ()=>{
-               clearInterval(t);
-           }
-        })
-
+        super(user, data,globalEventHandler,'testPF',momgo);
+        this.dbName = "test";
+        this.collectionName = "testing";
+        this.projection = {test:1,other:1,subs:1};
+        this.query = {group:1};
+        this.whereKey.test.testing.update = {group:1};
     }
 }
 
-s.addPublicFunction("testPF",testPF)
+s.addPublicFunction("testPF",testPF);
 
 
-let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne',{test:1});
 
-let t0 =  setInterval(()=> _s0.next('fire one'),1000);
+// let _s0:globalEvent = s.globalEventHandler.globalEventHandlerClient.createEvent('testOne',{test:1});
 
-setTimeout(()=>{
-    _s0.dispose();
-    clearInterval(t0);
-},120000);
+// let t0 =  setInterval(()=> _s0.next('fire one'),1000);
+
+// setTimeout(()=>{
+//     _s0.dispose();
+//     clearInterval(t0);
+// },120000);
+
+
+
+class save extends Save {
+    constructor(user:Object, data:any,globalEventHandler:globalEventHandler){
+        super(user, data,globalEventHandler,momgo);
+        this.dbName = "test";
+        this.collectionName = "testing";
+    }
+}
+
+s.addPublicFunction("save",save)
+
 
