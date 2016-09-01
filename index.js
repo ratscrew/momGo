@@ -245,7 +245,7 @@ var Save = (function (_super) {
         var key = {};
         me.observable = rxjs_1.Observable.create(function (_s) {
             key[me.dbName] = {};
-            key[me.dbName][me.collectionName] = { update: data.save.$set, _id: {} };
+            key[me.dbName][me.collectionName] = { update: me.buildUpdateKey(data.save.$set), _id: {} };
             key[me.dbName][me.collectionName]._id[data._id] = 1;
             var _s0 = globalEventHandler.globalEventHandlerClient.createEvent('save', key);
             me.momgo.save(me.dbName, me.collectionName, data._id, data.save).then(function () {
@@ -256,6 +256,30 @@ var Save = (function (_super) {
             });
         });
     }
+    Save.prototype.buildUpdateKey = function (_set) {
+        var update = {}, me = this;
+        if (!_set || Object.keys(_set).length == 0)
+            return update;
+        Object.keys(_set).forEach(function (_key) {
+            me.buildObj(update, _key.split('.'));
+        });
+        return update;
+    };
+    Save.prototype.buildObj = function (obj, array) {
+        var me = this;
+        if (array[0]) {
+            var key = array[0];
+            if (!obj[key])
+                obj[key] = 1;
+            array.splice(0, 1);
+            if (array.length > 0) {
+                if (obj[key] == 1)
+                    obj[key] = {};
+                me.buildObj(obj[key], array);
+            }
+        }
+        return obj;
+    };
     return Save;
 }(rx_server_1.publicFunction));
 exports.Save = Save;
