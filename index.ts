@@ -137,6 +137,8 @@ export class Query extends publicFunction {
     dbName:string = "test";
     collectionName:string = "testing";
     whereKey:any = {};
+    skip:number;
+    limit:number;
     
     constructor(user:Object, data:any,globalEventHandler:globalEventHandler,public functionName:string,public momgo:MomGo){
         super(user, data,globalEventHandler);
@@ -206,13 +208,16 @@ export class Query extends publicFunction {
                 let collection:mongoDriver.Collection = _db.collection(me.collectionName);
                 let p = q.when(true);
                 if(_update._id && me.docs.indexOf(_update._id)==-1){
-                    p = collection.findOne({_id:new me.momgo.ObjectID(_update._id)},{_id:1}).then((doc)=>{
+                    p = collection.findOne({$and:[{_id:new me.momgo.ObjectID(_update._id)},me.query]},{_id:1}).then((doc)=>{
                         return doc?true:false;
                     })
                 }
                 return p.then((shouldFire)=>{
                     if(shouldFire){
-                        return collection.find(me.query).project({_id:1}).toArray().then((_docs:Array<any>)=>{
+                        let cusor =  collection.find(me.query).project({_id:1});
+                        if(me.limit) cusor.limit(me.limit);
+                        if(me.skip) cusor.skip(me.skip);
+                        return cusor.toArray().then((_docs:Array<any>)=>{
                             _docs = _docs.map((_doc)=>{
                                 return _doc._id.toString();
                             })
