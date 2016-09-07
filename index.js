@@ -197,13 +197,20 @@ var Query = (function (_super) {
             var collection = _db.collection(me.collectionName);
             var p = q.when(true);
             if (_update._id && me.docs.indexOf(_update._id) == -1) {
-                p = collection.findOne({ _id: new me.momgo.ObjectID(_update._id) }, { _id: 1 }).then(function (doc) {
+                p = collection.findOne({ $and: [{ _id: new me.momgo.ObjectID(_update._id) }, me.query] }, { _id: 1 }).then(function (doc) {
                     return doc ? true : false;
                 });
             }
             return p.then(function (shouldFire) {
                 if (shouldFire) {
-                    return collection.find(me.query).project({ _id: 1 }).toArray().then(function (_docs) {
+                    var cusor = collection.find(me.query).project({ _id: 1 });
+                    if (me.limit)
+                        cusor.limit(me.limit);
+                    if (me.skip)
+                        cusor.skip(me.skip);
+                    if (me.sort)
+                        cusor.sort(me.sort);
+                    return cusor.toArray().then(function (_docs) {
                         _docs = _docs.map(function (_doc) {
                             return _doc._id.toString();
                         });

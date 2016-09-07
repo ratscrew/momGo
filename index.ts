@@ -139,6 +139,7 @@ export class Query extends publicFunction {
     whereKey:any = {};
     skip:number;
     limit:number;
+    sort:any;
     
     constructor(user:Object, data:any,globalEventHandler:globalEventHandler,public functionName:string,public momgo:MomGo){
         super(user, data,globalEventHandler);
@@ -217,6 +218,7 @@ export class Query extends publicFunction {
                         let cusor =  collection.find(me.query).project({_id:1});
                         if(me.limit) cusor.limit(me.limit);
                         if(me.skip) cusor.skip(me.skip);
+                        if(me.sort) cusor.sort(me.sort);
                         return cusor.toArray().then((_docs:Array<any>)=>{
                             _docs = _docs.map((_doc)=>{
                                 return _doc._id.toString();
