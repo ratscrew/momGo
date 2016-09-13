@@ -215,20 +215,26 @@ var Query = (function (_super) {
                             return _doc._id.toString();
                         });
                         var resendDocs = false;
-                        _docs.forEach(function (_id, i) {
-                            if (_id != me.docs[i]) {
-                                resendDocs = true;
-                            }
-                            if (me.docs.indexOf(_id) == -1) {
-                                collection.findOne({ _id: new me.momgo.ObjectID(_id) }, me.projection).then(function (doc) {
-                                    _s.next({ doc: doc });
-                                });
-                            }
-                        });
-                        me.docs.forEach(function (_id, i) {
-                            if (_id != _docs[i])
-                                resendDocs = true;
-                        });
+                        if (_docs.length != me.docs.length)
+                            resendDocs = true;
+                        else {
+                            _docs.forEach(function (_id, i) {
+                                if (_id != me.docs[i]) {
+                                    resendDocs = true;
+                                }
+                                if (me.docs.indexOf(_id) == -1) {
+                                    collection.findOne({ _id: new me.momgo.ObjectID(_id) }, me.projection).then(function (doc) {
+                                        _s.next({ doc: doc });
+                                    });
+                                }
+                            });
+                        }
+                        if (!resendDocs) {
+                            me.docs.forEach(function (_id, i) {
+                                if (_id != _docs[i])
+                                    resendDocs = true;
+                            });
+                        }
                         if (resendDocs) {
                             _s.next({ _ids: _docs });
                             me.docs = _docs;
