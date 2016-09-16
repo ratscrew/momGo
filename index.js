@@ -138,6 +138,7 @@ var Query = (function (_super) {
         this.dbName = "test";
         this.collectionName = "testing";
         this.whereKey = {};
+        this._firstRun = true;
         var me = this;
         me.whereKey = {};
         me.whereKey[me.dbName] = {};
@@ -215,20 +216,18 @@ var Query = (function (_super) {
                             return _doc._id.toString();
                         });
                         var resendDocs = false;
-                        if (_docs.length != me.docs.length)
+                        if (me._firstRun || _docs.length != me.docs.length)
                             resendDocs = true;
-                        else {
-                            _docs.forEach(function (_id, i) {
-                                if (_id != me.docs[i]) {
-                                    resendDocs = true;
-                                }
-                                if (me.docs.indexOf(_id) == -1) {
-                                    collection.findOne({ _id: new me.momgo.ObjectID(_id) }, me.projection).then(function (doc) {
-                                        _s.next({ doc: doc });
-                                    });
-                                }
-                            });
-                        }
+                        _docs.forEach(function (_id, i) {
+                            if (_id != me.docs[i]) {
+                                resendDocs = true;
+                            }
+                            if (me.docs.indexOf(_id) == -1) {
+                                collection.findOne({ _id: new me.momgo.ObjectID(_id) }, me.projection).then(function (doc) {
+                                    _s.next({ doc: doc });
+                                });
+                            }
+                        });
                         if (!resendDocs) {
                             me.docs.forEach(function (_id, i) {
                                 if (_id != _docs[i])
@@ -239,6 +238,7 @@ var Query = (function (_super) {
                             _s.next({ _ids: _docs });
                             me.docs = _docs;
                         }
+                        me._firstRun = false;
                     });
                 }
             });

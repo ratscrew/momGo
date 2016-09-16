@@ -140,6 +140,7 @@ export class Query extends publicFunction {
     skip:number;
     limit:number;
     sort:any;
+    private _firstRun = true;
     
     constructor(user:Object, data:any,globalEventHandler:globalEventHandler,public functionName:string,public momgo:MomGo){
         super(user, data,globalEventHandler);
@@ -224,19 +225,19 @@ export class Query extends publicFunction {
                                 return _doc._id.toString();
                             })
                             let resendDocs = false;
-                            if(_docs.length != me.docs.length) resendDocs = true;
-                            else {
-                                _docs.forEach((_id,i)=>{
-                                    if(_id != me.docs[i]){
-                                        resendDocs = true;
-                                    }
-                                    if(me.docs.indexOf(_id) == -1){
-                                        collection.findOne({_id:new me.momgo.ObjectID(_id)},me.projection).then((doc)=>{
-                                            _s.next({doc:doc});
-                                        })
-                                    }
-                                })
-                            }
+                            if(me._firstRun || _docs.length != me.docs.length) resendDocs = true;
+                            
+                            _docs.forEach((_id,i)=>{
+                                if(_id != me.docs[i]){
+                                    resendDocs = true;
+                                }
+                                if(me.docs.indexOf(_id) == -1){
+                                    collection.findOne({_id:new me.momgo.ObjectID(_id)},me.projection).then((doc)=>{
+                                        _s.next({doc:doc});
+                                    })
+                                }
+                            })
+                        
                             if(!resendDocs){
                                 me.docs.forEach((_id,i) =>{
                                     if(_id != _docs[i]) resendDocs = true;
@@ -247,6 +248,7 @@ export class Query extends publicFunction {
                                 _s.next({_ids:_docs});
                                 me.docs = _docs;
                             }
+                            me._firstRun = false;
                         })
                     }
                 })
