@@ -69,7 +69,7 @@ export class Query {
                         }
                 }
             }
-
+            return data;
         }).debounceTime(50)
         
         return Observable.merge(querySreeem,me.internalStreemSubject.asObservable()).debounceTime(10).map(()=>{
