@@ -20,7 +20,7 @@ export class MomGo {
         else{
             var deferred = q.defer();
             me.dbs[connectionStr] = deferred.promise;
-            console.log({connectionStr:connectionStr});
+            //console.log({connectionStr:connectionStr});
             me.MongoClient.connect(connectionStr, (err, _db)=> {
                 if(err) {
                     console.log({connectionError:err, connectionStr:connectionStr});

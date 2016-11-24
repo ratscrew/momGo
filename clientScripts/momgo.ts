@@ -10,7 +10,12 @@ export class Query {
     private internalStreemSubject:Subject<any> = new Subject();
     
     constructor(public myServer: serverRx, public getFunctionName:string, public saveFunctionName:string) {
-
+        let me = this;
+        setInterval(()=>{
+            Object.keys(me.docs).forEach(_key =>{
+                if(me.ids.indexOf(_key) == -1) delete me.docs[_key];
+            })
+        },60000 * ((10 * Math.random()) + 15));
     }
     
     get(functionName = this.getFunctionName,data = {}){
@@ -35,7 +40,7 @@ export class Query {
                 }
                 for (var i in data.update.save.$set) {
                     var pk = me.objAddrOfParent(me.savedDocs[data.update._id], i);
-                    pk.parent[pk.childKey] = me.clone(data.update.save.$set[i]);
+                    if(pk && pk.parent && pk.parent[pk.childKey]) pk.parent[pk.childKey] = me.clone(data.update.save.$set[i]);
                 }
 
 
