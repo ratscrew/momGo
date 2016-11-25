@@ -1,4 +1,4 @@
-import {Observable, Subject} from 'rxjs/Rx';
+import {Observable, Subject, Subscription} from 'rxjs/Rx';
 
 import {serverRx} from 'rx-server/clientScripts/rxServer';
 
